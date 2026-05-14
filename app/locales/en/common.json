@@ -1,0 +1,77 @@
+{
+  "navigation": {
+    "home": "Home",
+    "new": "New",
+    "categories": "Categories",
+    "about": "About",
+    "sale": "Sale"
+  },
+  "categories_menu": {
+    "hoodie": "Hoodie",
+    "tshirt": "T-shirts",
+    "pants": "Pants",
+    "shorts": "Shorts",
+    "jacket": "Jackets",
+    "windbreaker": "Windbreakers",
+    "sneakers": "Sneakers",
+    "accessories": "Accessories",
+    "limited": "Limited Drop"
+  },
+  "buttons": {
+    "add_to_cart": "Add to cart",
+    "in_cart": "In Cart ✓",
+    "buy_now": "Buy now",
+    "view_collection": "View collection",
+    "checkout": "Checkout",
+    "search": "Search",
+    "favorites": "Favorites",
+    "cart": "Cart",
+    "size_chart": "Size chart",
+    "select_size": "Select size",
+    "select_color": "Select color",
+    "apply_promo": "Apply",
+    "promo_placeholder": "Enter promo code",
+    "subscribe": "Subscribe"
+  },
+  "hero": {
+    "title": "TENZA: New Era of Street Fashion",
+    "subtitle": "Exclusive drop. Made for those who set the rules.",
+    "cta": "View collection"
+  },
+  "product": {
+    "description": "Description",
+    "details": "Details",
+    "shipping": "Shipping",
+    "returns": "Returns",
+    "in_stock": "In stock",
+    "out_of_stock": "Out of stock",
+    "color": "Color",
+    "size": "Size"
+  },
+  "about": {
+    "title": "About TENZA",
+    "text": "TENZA is a personal experimental project. Each piece is made in limited quantities. It's not just clothing. It's an identity."
+  },
+  "footer": {
+    "quote": "TENZA is not just clothing. It's an identity.",
+    "newsletter": "Subscribe to newsletter",
+    "email_placeholder": "Your email",
+    "rights": "All rights reserved",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "navigation": "Navigation"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Cart is empty",
+    "continue": "Continue shopping",
+    "total": "Total",
+    "remove": "Remove",
+    "promo": "Promo code"
+  },
+  "common": {
+    "limited_drop": "LIMITED DROP 001",
+    "collection": "COLLECTION",
+    "new_arrivals": "NEW ARRIVALS"
+  }
+}

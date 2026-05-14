@@ -1,0 +1,77 @@
+{
+  "navigation": {
+    "home": "Bosh sahifa",
+    "new": "Yangiliklar",
+    "categories": "Kategoriyalar",
+    "about": "Brend haqida",
+    "sale": "Chegirma"
+  },
+  "categories_menu": {
+    "hoodie": "Hudi",
+    "tshirt": "Futbolkalar",
+    "pants": "Shimlar",
+    "shorts": "Shortiklar",
+    "jacket": "Kurtkalar",
+    "windbreaker": "Vetrovkalar",
+    "sneakers": "Krossovkalar",
+    "accessories": "Aksessuarlar",
+    "limited": "Limitlangan drop"
+  },
+  "buttons": {
+    "add_to_cart": "Savatga qo'shish",
+    "in_cart": "Savatda ✓",
+    "buy_now": "Hoziroq xarid qilish",
+    "view_collection": "Kollektsiyani ko'rish",
+    "checkout": "Buyurtma berish",
+    "search": "Qidirish",
+    "favorites": "Sevimlilar",
+    "cart": "Savat",
+    "size_chart": "O'lcham jadvali",
+    "select_size": "O'lchamni tanlang",
+    "select_color": "Rangni tanlang",
+    "apply_promo": "Qo'llash",
+    "promo_placeholder": "Promokodni kiriting",
+    "subscribe": "Obuna bo'lish"
+  },
+  "hero": {
+    "title": "TENZA: Ko'cha Modasining Yangi Davri",
+    "subtitle": "Eksklyuziv drop. Qoidalarni belgilaydiganlar uchun yaratilgan.",
+    "cta": "Kollektsiyani ko'rish"
+  },
+  "product": {
+    "description": "Tavsif",
+    "details": "Tafsilotlar",
+    "shipping": "Yetkazib berish",
+    "returns": "Qaytarish",
+    "in_stock": "Omborda mavjud",
+    "out_of_stock": "Omborda yo'q",
+    "color": "Rang",
+    "size": "O'lcham"
+  },
+  "about": {
+    "title": "TENZA brendi haqida",
+    "text": "TENZA — shaxsiy eksperimental loyiha. Har bir buyum cheklangan miqdorda yaratiladi. Bu shunchaki kiyim emas. Bu identifikatsiya."
+  },
+  "footer": {
+    "quote": "TENZA is not just clothing. It's an identity.",
+    "newsletter": "Yangiliklarga obuna bo'ling",
+    "email_placeholder": "Emailingiz",
+    "rights": "Barcha huquqlar himoyalangan",
+    "privacy": "Maxfiylik siyosati",
+    "terms": "Foydalanish shartlari",
+    "navigation": "Navigatsiya"
+  },
+  "cart": {
+    "title": "Savat",
+    "empty": "Savat bo'sh",
+    "continue": "Xaridni davom ettirish",
+    "total": "Jami",
+    "remove": "O'chirish",
+    "promo": "Promokod"
+  },
+  "common": {
+    "limited_drop": "LIMITED DROP 001",
+    "collection": "KOLLEKTSIYA",
+    "new_arrivals": "YANGILIKLAR"
+  }
+}

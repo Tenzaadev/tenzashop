@@ -1,0 +1,77 @@
+{
+  "navigation": {
+    "home": "Hem",
+    "new": "Nyheter",
+    "categories": "Kategorier",
+    "about": "Om varumärket",
+    "sale": "REA"
+  },
+  "categories_menu": {
+    "hoodie": "Hoodie",
+    "tshirt": "T-shirts",
+    "pants": "Byxor",
+    "shorts": "Shorts",
+    "jacket": "Jackor",
+    "windbreaker": "Vindjackor",
+    "sneakers": "Sneakers",
+    "accessories": "Accessoarer",
+    "limited": "Begränsad drop"
+  },
+  "buttons": {
+    "add_to_cart": "Lägg i varukorg",
+    "in_cart": "I varukorgen ✓",
+    "buy_now": "Köp nu",
+    "view_collection": "Se kollektion",
+    "checkout": "Till kassan",
+    "search": "Sök",
+    "favorites": "Favoriter",
+    "cart": "Varukorg",
+    "size_chart": "Storleksguide",
+    "select_size": "Välj storlek",
+    "select_color": "Välj färg",
+    "apply_promo": "Använd",
+    "promo_placeholder": "Ange rabattkod",
+    "subscribe": "Prenumerera"
+  },
+  "hero": {
+    "title": "TENZA: Ny Era av Streetmode",
+    "subtitle": "Exklusiv drop. Skapad för de som sätter reglerna.",
+    "cta": "Se kollektion"
+  },
+  "product": {
+    "description": "Beskrivning",
+    "details": "Detaljer",
+    "shipping": "Frakt",
+    "returns": "Returer",
+    "in_stock": "I lager",
+    "out_of_stock": "Slut i lager",
+    "color": "Färg",
+    "size": "Storlek"
+  },
+  "about": {
+    "title": "Om TENZA",
+    "text": "TENZA är ett personligt experimentellt projekt. Varje plagg tillverkas i begränsad upplaga. Det är inte bara kläder. Det är en identitet."
+  },
+  "footer": {
+    "quote": "TENZA is not just clothing. It's an identity.",
+    "newsletter": "Prenumerera på nyhetsbrev",
+    "email_placeholder": "Din e-post",
+    "rights": "Alla rättigheter förbehållna",
+    "privacy": "Integritetspolicy",
+    "terms": "Användarvillkor",
+    "navigation": "Navigering"
+  },
+  "cart": {
+    "title": "Varukorg",
+    "empty": "Varukorgen är tom",
+    "continue": "Fortsätt handla",
+    "total": "Totalt",
+    "remove": "Ta bort",
+    "promo": "Rabattkod"
+  },
+  "common": {
+    "limited_drop": "LIMITED DROP 001",
+    "collection": "KOLLEKTION",
+    "new_arrivals": "NYHETER"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "navigation": {
+    "home": "Главная",
+    "new": "Новинки",
+    "categories": "Категории",
+    "about": "О бренде",
+    "sale": "Распродажа"
+  },
+  "categories_menu": {
+    "hoodie": "Худи",
+    "tshirt": "Функциональные",
+    "pants": "Штаны",
+    "shorts": "Шорты",
+    "jacket": "Куртки",
+    "windbreaker": "Ветровки",
+    "sneakers": "Кроссовки",
+    "accessories": "Аксессуары",
+    "limited": "Лимитированный дроп"
+  },
+  "buttons": {
+    "add_to_cart": "В корзину",
+    "in_cart": "В корзине ✓",
+    "buy_now": "Купить сейчас",
+    "view_collection": "Смотреть коллекцию",
+    "checkout": "Оформить заказ",
+    "search": "Поиск",
+    "favorites": "Избранное",
+    "cart": "Корзина",
+    "size_chart": "Таблица размеров",
+    "select_size": "Выберите размер",
+    "select_color": "Выберите цвет",
+    "apply_promo": "Применить",
+    "promo_placeholder": "Введите промокод",
+    "subscribe": "Подписаться"
+  },
+  "hero": {
+    "title": "TENZA: Новая Эра Уличной Моды",
+    "subtitle": "Эксклюзивный дроп. Создано для тех, кто задает правила.",
+    "cta": "Смотреть коллекцию"
+  },
+  "product": {
+    "description": "Описание",
+    "details": "Детали",
+    "shipping": "Доставка",
+    "returns": "Возврат",
+    "in_stock": "В наличии",
+    "out_of_stock": "Нет в наличии",
+    "color": "Цвет",
+    "size": "Размер"
+  },
+  "about": {
+    "title": "О бренде TENZA",
+    "text": "TENZA — персональный экспериментальный проект. Каждая вещь создается ограниченным тиражом. Это не просто одежда. Это идентичность."
+  },
+  "footer": {
+    "quote": "TENZA is not just clothing. It's an identity.",
+    "newsletter": "Подпишитесь на рассылку",
+    "email_placeholder": "Ваш email",
+    "rights": "Все права защищены",
+    "privacy": "Политика конфиденциальности",
+    "terms": "Условия использования",
+    "navigation": "Навигация"
+  },
+  "cart": {
+    "title": "Корзина",
+    "empty": "Корзина пуста",
+    "continue": "Продолжить покупки",
+    "total": "Итого",
+    "remove": "Удалить",
+    "promo": "Промокод"
+  },
+  "common": {
+    "limited_drop": "LIMITED DROP 001",
+    "collection": "КОЛЛЕКЦИЯ",
+    "new_arrivals": "НОВИНКИ"
+  }
+}

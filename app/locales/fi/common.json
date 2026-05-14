@@ -1,0 +1,77 @@
+{
+  "navigation": {
+    "home": "Etusivu",
+    "new": "Uutta",
+    "categories": "Kategoriat",
+    "about": "Brändistä",
+    "sale": "Ale"
+  },
+  "categories_menu": {
+    "hoodie": "Huppari",
+    "tshirt": "T-paidat",
+    "pants": "Housut",
+    "shorts": "Shortsit",
+    "jacket": "Takit",
+    "windbreaker": "Tuulitakit",
+    "sneakers": "Lenkkarit",
+    "accessories": "Asusteet",
+    "limited": "Rajoitettu erä"
+  },
+  "buttons": {
+    "add_to_cart": "Lisää ostoskoriin",
+    "in_cart": "Ostoskorissa ✓",
+    "buy_now": "Osta nyt",
+    "view_collection": "Katso mallisto",
+    "checkout": "Kassalle",
+    "search": "Haku",
+    "favorites": "Suosikit",
+    "cart": "Ostoskori",
+    "size_chart": "Kokotaulukko",
+    "select_size": "Valitse koko",
+    "select_color": "Valitse väri",
+    "apply_promo": "Käytä",
+    "promo_placeholder": "Syötä alennuskoodi",
+    "subscribe": "Tilaa"
+  },
+  "hero": {
+    "title": "TENZA: Katumuodin Uusi Aikakausi",
+    "subtitle": "Eksklusiivinen drop. Tehty niille, jotka määräävät säännöt.",
+    "cta": "Katso mallisto"
+  },
+  "product": {
+    "description": "Kuvaus",
+    "details": "Tiedot",
+    "shipping": "Toimitus",
+    "returns": "Palautukset",
+    "in_stock": "Varastossa",
+    "out_of_stock": "Loppuunmyyty",
+    "color": "Väri",
+    "size": "Koko"
+  },
+  "about": {
+    "title": "Tietoa TENZAsta",
+    "text": "TENZA on henkilökohtainen kokeellinen projekti. Jokainen tuote valmistetaan rajoitettuna eränä. Se ei ole vain vaatteita. Se on identiteetti."
+  },
+  "footer": {
+    "quote": "TENZA is not just clothing. It's an identity.",
+    "newsletter": "Tilaa uutiskirje",
+    "email_placeholder": "Sähköpostisi",
+    "rights": "Kaikki oikeudet pidätetään",
+    "privacy": "Tietosuojakäytäntö",
+    "terms": "Käyttöehdot",
+    "navigation": "Navigaatio"
+  },
+  "cart": {
+    "title": "Ostoskori",
+    "empty": "Ostoskori on tyhjä",
+    "continue": "Jatka ostoksia",
+    "total": "Yhteensä",
+    "remove": "Poista",
+    "promo": "Alekoodi"
+  },
+  "common": {
+    "limited_drop": "LIMITED DROP 001",
+    "collection": "KOKOELMA",
+    "new_arrivals": "UUDET TUOTTEET"
+  }
+}
