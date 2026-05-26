@@ -1,8 +1,13 @@
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) return null
+  return new Stripe(process.env.STRIPE_SECRET_KEY)
+}
 
 export async function GET(req) {
+  const stripe = getStripe()
+  if (!stripe) return Response.json({ error: 'Stripe not configured' }, { status: 500 })
   const sessionId = req.nextUrl.searchParams.get('session_id')
   if (!sessionId) return Response.json({ error: 'missing session_id' }, { status: 400 })
   try {
@@ -36,6 +41,8 @@ function toStripeAmount(amount, currency) {
 }
 
 export async function POST(req) {
+  const stripe = getStripe()
+  if (!stripe) return Response.json({ error: 'Stripe not configured' }, { status: 500 })
   try {
     const { items, currency = 'en', delivery = 'standard', locale } = await req.json()
     const rate = rates[currency] || 1
