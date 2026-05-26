@@ -8,7 +8,7 @@ import {
   ArrowLeft, Heart, ShoppingCart, Check, Star, Truck, RotateCcw,
   Shield, Minus, Plus, Share2
 } from 'lucide-react'
-import { products } from '@/data/products'
+import { getProducts, getProductById } from '@/data/productStore'
 import { useI18n } from '@/i18n'
 import { useCart } from '@/hooks/useCart'
 import { useWishlist } from '@/hooks/useWishlist'
@@ -16,7 +16,7 @@ import { StockIndicator, SoldCount } from '../../components/StockIndicator'
 import Header from '../../components/Header'
 import ProductCard from '../../components/ProductCard'
 import ReviewCard from '@/components/ReviewCard'
-import { getProductReviews, saveReview as saveGlobalReview } from '../../components/ProductReviews'
+import { subscribeProductReviews, addReview } from '@/lib/firestore'
 
 export default function ProductPage() {
   const { id } = useParams()
@@ -24,8 +24,15 @@ export default function ProductPage() {
   const { addToCart, setCartOpen } = useCart()
   const { isWishlisted, toggleWishlist, loaded } = useWishlist()
 
-  const product = products.find(p => p.id === id)
+  const [product, setProduct] = useState(null)
   const productName = (p) => (typeof p.name === 'string' ? p.name : p.name?.[locale] || p.name?.en || '')
+
+  useEffect(() => {
+    setProduct(getProductById(id))
+    const h = () => setProduct(getProductById(id))
+    window.addEventListener('products-updated', h)
+    return () => window.removeEventListener('products-updated', h)
+  }, [id])
   const [selectedSize, setSelectedSize] = useState('M')
   const [selectedColor, setSelectedColor] = useState('#000000')
   const [quantity, setQuantity] = useState(1)
@@ -37,10 +44,9 @@ export default function ProductPage() {
   const [currentImage, setCurrentImage] = useState(0)
 
   useEffect(() => {
-    setReviews(getProductReviews(id))
-    const h = () => setReviews(getProductReviews(id))
-    window.addEventListener('reviews-updated', h)
-    return () => window.removeEventListener('reviews-updated', h)
+    if (!id) return
+    const unsub = subscribeProductReviews(id, setReviews)
+    return () => unsub()
   }, [id])
 
   if (!product) {
@@ -59,8 +65,8 @@ export default function ProductPage() {
     )
   }
 
-  const liked = loaded && isWishlisted(product.id)
-  const relatedProducts = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4)
+  const liked = loaded && isWishlisted(product?.id)
+  const relatedProducts = product ? getProducts().filter(p => p.category === product.category && p.id !== product.id).slice(0, 4) : []
   const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
 
   const allImages = [product.image, product.hoverImage || product.image]
@@ -74,9 +80,9 @@ export default function ProductPage() {
     setTimeout(() => setAdded(false), 2500)
   }
 
-  const submitReview = () => {
+  const submitReview = async () => {
     if (userRating === 0 || !reviewText.trim()) return
-    saveGlobalReview({
+    await addReview({
       productId: id,
       userId: 'anonymous',
       userName: 'TENZA Customer',

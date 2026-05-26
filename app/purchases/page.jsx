@@ -7,7 +7,9 @@ import { useI18n } from '@/i18n'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/hooks/useCart'
 import { getOrders } from '@/data/orders'
-import { getProductReviews, saveReview, deleteReview } from '../components/ProductReviews'
+import { subscribeProductReviews, addReview } from '@/lib/firestore'
+import { deleteDoc, doc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import StarRating from '../components/StarRating'
 import PhotoReview from '@/components/PhotoReview'
 import ReviewCard from '@/components/ReviewCard'
@@ -53,39 +55,31 @@ function PurchasedProductCard({ product, locale, lang, user }) {
   const productName = typeof product?.name === 'string' ? product.name : (product?.name?.[locale] || product?.name?.en || '')
 
   useEffect(() => {
-    const reviews = getProductReviews(product.id)
-    const existing = reviews.find(r => r.userId === user?.login && r.orderId === product.orderId)
-    if (existing) setExistingReview(existing)
-  }, [product.id, product.orderId, user?.login])
-
-  useEffect(() => {
-    const h = () => {
-      const reviews = getProductReviews(product.id)
+    if (!product.id) return
+    const unsub = subscribeProductReviews(product.id, (reviews) => {
       const existing = reviews.find(r => r.userId === user?.login && r.orderId === product.orderId)
       if (existing) setExistingReview(existing)
-    }
-    window.addEventListener('reviews-updated', h)
-    return () => window.removeEventListener('reviews-updated', h)
+    })
+    return () => unsub()
   }, [product.id, product.orderId, user?.login])
 
-  const handleSaveReview = (reviewData) => {
-    const saved = saveReview({
+  const handleSaveReview = async (reviewData) => {
+    const saved = await addReview({
       productId: reviewData.productId,
       orderId: reviewData.orderId,
       userId: user.login,
       userName: user.login,
       rating: reviewData.rating,
       comment: reviewData.comment,
-      existingId: reviewData.id,
       photos: reviewData.photos,
     })
     setExistingReview(saved)
     setShowPhotoReview(false)
   }
 
-  const handleDeleteReview = () => {
+  const handleDeleteReview = async () => {
     if (existingReview) {
-      deleteReview(existingReview.id)
+      await deleteDoc(doc(db, 'reviews', existingReview.id))
       setExistingReview(null)
     }
   }
@@ -150,17 +144,37 @@ export default function PurchasesPage() {
   useEffect(() => {
     if (!user) { setItems([]); return }
     const validStatuses = ['paid', 'processing', 'shipped', 'in_transit', 'delivered']
-    const orders = getOrders().filter(o =>
-      (o.login === user.login || o.email === user.login) &&
-      validStatuses.includes(o.status)
-    )
-    const all = []
-    orders.forEach(order => {
-      (order.items || []).forEach(item => {
-        all.push({ ...item, orderId: order.orderId || order.id, date: order.updatedAt || order.createdAt, orderStatus: order.status })
+
+    try {
+      const fallback = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
+      const fallbackOrders = fallback.filter(o =>
+        (o.login === user.login || o.email === user.login) &&
+        validStatuses.includes(o.status)
+      )
+      const fallbackItems = []
+      fallbackOrders.forEach(order => {
+        (order.items || []).forEach(item => {
+          fallbackItems.push({ ...item, orderId: order.orderId || order.id, date: order.updatedAt || order.createdAt, orderStatus: order.status })
+        })
       })
+      if (fallbackItems.length > 0) setItems(fallbackItems)
+    } catch {}
+
+    const unsub = subscribeOrders((allOrders) => {
+      const userOrders = allOrders.filter(o =>
+        (o.login === user.login || o.email === user.login) &&
+        validStatuses.includes(o.status)
+      )
+      const all = []
+      userOrders.forEach(order => {
+        (order.items || []).forEach(item => {
+          all.push({ ...item, orderId: order.orderId || order.id, date: order.updatedAt || order.createdAt, orderStatus: order.status })
+        })
+      })
+      setItems(all)
     })
-    setItems(all)
+
+    return () => unsub()
   }, [user])
 
   if (!user) {

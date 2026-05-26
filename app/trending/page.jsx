@@ -1,19 +1,28 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Flame, TrendingUp, Eye, Package } from 'lucide-react'
-import { products } from '@/data/products'
+import { getProducts } from '@/data/productStore'
 import { useHeatMap } from '@/hooks/useHeatMap'
 import Header from '../components/Header'
 import ProductCard from '../components/ProductCard'
 
 export default function TrendingPage() {
   const { getHotProducts, getTrendingProducts, getProductStats } = useHeatMap()
+  const [allProducts, setAllProducts] = useState([])
+
+  useEffect(() => {
+    const load = () => setAllProducts(getProducts())
+    load()
+    window.addEventListener('products-updated', load)
+    return () => window.removeEventListener('products-updated', load)
+  }, [])
 
   const hotIds = getHotProducts(10)
   const trendingIds = getTrendingProducts(10)
 
-  const hotProducts = hotIds.map(id => products.find(p => p.id === id)).filter(Boolean)
-  const trendingProducts = trendingIds.map(id => products.find(p => p.id === id)).filter(Boolean)
+  const hotProducts = hotIds.map(id => allProducts.find(p => p.id === id)).filter(Boolean)
+  const trendingProducts = trendingIds.map(id => allProducts.find(p => p.id === id)).filter(Boolean)
 
   return (
     <div className="min-h-screen bg-[#050505]">
@@ -133,7 +142,7 @@ export default function TrendingPage() {
           >
             <h2 className="text-2xl font-bold text-white mb-6">Barcha mahsulotlar</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {products.slice(0, 8).map(product => (
+              {allProducts.slice(0, 8).map(product => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Search, Send, MessageCircle, ArrowLeft, Eye } from 'lucide-react'
-import { getSupportMessages, addAdminReply, closeTicket, getPendingCount, getSupportMessageById, markAsAdminViewed } from '@/data/supportMessages'
+import { subscribeSupportMessages, markSupportReplied } from '@/lib/firestore'
+import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useI18n } from '@/i18n'
 
 const L = {
@@ -66,13 +68,9 @@ export default function AdminSupportPage() {
   const [filter, setFilter] = useState('pending')
   const [search, setSearch] = useState('')
 
-  const loadMessages = () => setMessages(getSupportMessages())
-
   useEffect(() => {
-    loadMessages()
-    const h = () => loadMessages()
-    window.addEventListener('support-message-updated', h)
-    return () => window.removeEventListener('support-message-updated', h)
+    const unsub = subscribeSupportMessages(setMessages)
+    return () => unsub()
   }, [])
 
   const filterKeys = ['pending', 'replied', 'all']
@@ -87,46 +85,44 @@ export default function AdminSupportPage() {
   const countByStatus = (status) => messages.filter(m => m.status === status).length
 
   const selectMessage = (msg) => {
-    markAsAdminViewed(msg.id)
     setSelected(msg)
-    loadMessages()
   }
 
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
     const input = document.getElementById('admin-reply-input')
     if (!input?.value?.trim() || !selected) return
-    addAdminReply(selected.id, input.value.trim())
+    const text = input.value.trim()
+    await updateDoc(doc(db, 'support', selected.id), {
+      replies: arrayUnion({
+        id: 'REPLY-' + Date.now().toString(36),
+        from: 'admin',
+        text,
+        createdAt: new Date().toISOString(),
+      }),
+      status: 'replied',
+      updatedAt: serverTimestamp(),
+    })
+    await markSupportReplied(selected.id)
     input.value = ''
-    loadMessages()
-    setSelected(prev => ({ ...getSupportMessages().find(m => m.id === prev.id) }))
   }
 
-  const handleCloseTicket = () => {
+  const handleCloseTicket = async () => {
     if (!selected) return
-    closeTicket(selected.id)
-    loadMessages()
-    setSelected(prev => ({ ...getSupportMessages().find(m => m.id === prev.id) }))
+    await updateDoc(doc(db, 'support', selected.id), {
+      status: 'closed',
+      updatedAt: serverTimestamp(),
+    })
   }
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = async (newStatus) => {
     if (!selected) return
-    if (newStatus === 'closed') {
-      closeTicket(selected.id)
-    } else {
-      const msg = getSupportMessageById(selected.id)
-      if (msg) {
-        msg.status = newStatus
-        const all = getSupportMessages()
-        const idx = all.findIndex(m => m.id === selected.id)
-        if (idx >= 0) {
-          all[idx] = msg
-          localStorage.setItem('tenza_support_messages', JSON.stringify(all))
-          window.dispatchEvent(new CustomEvent('support-message-updated'))
-        }
-      }
+    await updateDoc(doc(db, 'support', selected.id), {
+      status: newStatus,
+      updatedAt: serverTimestamp(),
+    })
+    if (newStatus === 'replied') {
+      await markSupportReplied(selected.id)
     }
-    loadMessages()
-    setSelected(prev => ({ ...getSupportMessages().find(m => m.id === prev.id) }))
   }
 
   const formatDate = (d) => {

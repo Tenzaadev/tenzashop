@@ -1,14 +1,18 @@
 'use client'
 import { createContext, useContext, useState, useEffect } from 'react'
+import { setUser, updateUser, getUserDoc, subscribeAllUsers, isLoginTaken, findUserByReferralCode, getUserStats, generateReferralCode, generateLoginKey } from '@/lib/firestore'
 
 export const AuthContext = createContext(null)
 
-const generateReferralCode = () => {
-  return 'TENZA-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+const LS_USERS_KEY = 'tenza_users'
+
+function loadLocalUsers() {
+  if (typeof window === 'undefined') return {}
+  try { return JSON.parse(localStorage.getItem(LS_USERS_KEY) || '{}') } catch { return {} }
 }
 
-const generateLoginKey = (login) => {
-  return 'tenza_user_' + login.toLowerCase().trim()
+function saveLocalUsers(users) {
+  try { localStorage.setItem(LS_USERS_KEY, JSON.stringify(users)) } catch {}
 }
 
 export function AuthProvider({ children }) {
@@ -18,90 +22,102 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     setMounted(true)
-    const savedUsers = localStorage.getItem('tenza_users')
-    if (savedUsers) {
-      setAllUsers(JSON.parse(savedUsers))
-    }
+
     const savedSession = localStorage.getItem('tenza_current_user')
     if (savedSession) {
-      setUser(JSON.parse(savedSession))
+      try { setUser(JSON.parse(savedSession)) } catch {}
     }
+
+    setAllUsers(loadLocalUsers())
+
+    const unsub = subscribeAllUsers((users) => {
+      setAllUsers(users)
+      saveLocalUsers(users)
+    })
+    return () => unsub()
   }, [])
 
-  const saveUsers = (users) => {
-    setAllUsers(users)
-    localStorage.setItem('tenza_users', JSON.stringify(users))
-  }
-
-  const isLoginTaken = (login) => {
-    const key = generateLoginKey(login.trim())
-    return !!allUsers[key]
-  }
-
-  const register = (login, password, referredByCode = null) => {
+  const register = async (login, password, referredByCode = null) => {
     if (!login || !password) return { success: false, error: 'Login va parol kiritish majburiy' }
     if (login.trim().length < 3) return { success: false, error: 'Login kamida 3 belgi bolishi kerak' }
-    if (password.length < 4) {
-      return { success: false, error: 'Parol kamida 4 belgi bolishi kerak' }
-    }
-    if (isLoginTaken(login)) {
-      return { success: false, error: 'Bu login allaqachon ishlatilgan' }
-    }
+    if (password.length < 4) return { success: false, error: 'Parol kamida 4 belgi bolishi kerak' }
 
     const key = generateLoginKey(login)
+    if (allUsers[key]) return { success: false, error: 'Bu login allaqachon ishlatilgan' }
+    try {
+      if (await isLoginTaken(login)) return { success: false, error: 'Bu login allaqachon ishlatilgan' }
+    } catch {}
+
     const newReferralCode = generateReferralCode()
     const now = new Date().toISOString()
-    
+
     let bonus = 0
     let referrerBonus = 0
     let referrerId = null
 
     if (referredByCode) {
-      referrerId = Object.keys(allUsers).find(k => allUsers[k]?.referralCode === referredByCode)
-      if (referrerId && referrerId !== key) {
-        referrerBonus = 25
-        allUsers[referrerId] = {
-          ...allUsers[referrerId],
-          coins: (allUsers[referrerId].coins || 0) + 25,
-          referralCount: (allUsers[referrerId].referralCount || 0) + 1,
-          referralBonus: (allUsers[referrerId].referralBonus || 0) + 25
+      try {
+        const referrer = await findUserByReferralCode(referredByCode)
+        if (referrer && referrer.id !== key) {
+          referrerId = referrer.id
+          referrerBonus = 25
+          await updateUser(referrerId, {
+            coins: (referrer.coins || 0) + 25,
+            referralCount: (referrer.referralCount || 0) + 1,
+            referralBonus: (referrer.referralBonus || 0) + 25,
+          }).catch(() => {})
+          bonus = 25
         }
-        bonus = 25
+      } catch {
+        const local = loadLocalUsers()
+        const refFound = Object.values(local).find(u => u.referralCode === referredByCode)
+        if (refFound && refFound.login !== login) {
+          referrerId = key
+          const refUserKey = generateLoginKey(refFound.login)
+          const refUser = { ...refFound, coins: (refFound.coins || 0) + 25, referralCount: (refFound.referralCount || 0) + 1, referralBonus: (refFound.referralBonus || 0) + 25 }
+          local[refUserKey] = refUser
+          saveLocalUsers(local)
+          bonus = 25
+        }
       }
     }
 
     const newUser = {
-      login,
-      password,
+      login, password,
       referralCode: newReferralCode,
       registeredAt: now,
       referredBy: referrerId ? allUsers[referrerId]?.login : null,
-      coins: bonus,
-      referralCount: 0,
-      referralBonus: referrerBonus,
-      totalPurchases: 0,
-      totalSpent: 0,
-      purchases: []
+      coins: bonus, referralCount: 0, referralBonus: referrerBonus,
+      totalPurchases: 0, totalSpent: 0, purchases: [],
     }
 
-    const updatedUsers = { ...allUsers, [key]: newUser }
-    saveUsers(updatedUsers)
+    try {
+      await setUser(key, newUser)
+    } catch {}
+    const local = loadLocalUsers()
+    local[key] = newUser
+    saveLocalUsers(local)
+
     setUser(newUser)
     localStorage.setItem('tenza_current_user', JSON.stringify(newUser))
-
     return { success: true, user: { ...newUser, key } }
   }
 
-  const login = (login, password) => {
+  const login = async (login, password) => {
     const key = generateLoginKey(login.trim())
-    const existingUser = allUsers[key]
-    
+    let existingUser = allUsers[key]
+
     if (!existingUser) {
-      return { success: false, error: 'Foydalanuvchi topilmadi' }
+      try {
+        existingUser = await getUserDoc(key)
+      } catch {
+        const local = loadLocalUsers()
+        existingUser = local[key]
+      }
     }
-    if (existingUser.password !== password) {
-      return { success: false, error: 'Parol notogri' }
-    }
+
+    if (!existingUser) return { success: false, error: 'USER_NOT_FOUND' }
+    if (existingUser.password !== password) return { success: false, error: 'WRONG_PASSWORD' }
 
     setUser(existingUser)
     localStorage.setItem('tenza_current_user', JSON.stringify(existingUser))
@@ -113,49 +129,55 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('tenza_current_user')
   }
 
-  const addPurchaseBonus = (amountUSD) => {
+  const addPurchaseBonus = async (amountUSD) => {
     if (!user) return
     const coinsToAdd = Math.floor(amountUSD)
-    if (coinsToAdd > 0) {
-      const key = generateLoginKey(user.login)
-      const updatedUser = {
-        ...user,
-        coins: (user.coins || 0) + coinsToAdd,
-        totalPurchases: (user.totalPurchases || 0) + 1,
-        totalSpent: (user.totalSpent || 0) + amountUSD,
-        purchases: [...(user.purchases || []), { date: new Date().toISOString(), amount: amountUSD, bonus: coinsToAdd }]
-      }
-      allUsers[key] = updatedUser
-      saveUsers(allUsers)
-      setUser(updatedUser)
-      localStorage.setItem('tenza_current_user', JSON.stringify(updatedUser))
+    if (coinsToAdd <= 0) return
+    const key = generateLoginKey(user.login)
+    const purchases = [...(user.purchases || []), { date: new Date().toISOString(), amount: amountUSD, bonus: coinsToAdd }]
+    const updates = {
+      coins: (user.coins || 0) + coinsToAdd,
+      totalPurchases: (user.totalPurchases || 0) + 1,
+      totalSpent: (user.totalSpent || 0) + amountUSD,
+      purchases,
     }
+    const updatedUser = { ...user, ...updates }
+    try {
+      await updateUser(key, updates)
+    } catch {
+      const local = loadLocalUsers()
+      local[key] = { ...local[key], ...updates }
+      saveLocalUsers(local)
+    }
+    setUser(updatedUser)
+    localStorage.setItem('tenza_current_user', JSON.stringify(updatedUser))
   }
 
-  const getUserByReferralCode = (code) => {
-    return Object.values(allUsers).find(u => u.referralCode === code)
+  const getUserByReferralCode = async (code) => {
+    if (allUsers) {
+      const found = Object.values(allUsers).find(u => u.referralCode === code)
+      if (found) return found
+    }
+    try { return await findUserByReferralCode(code) } catch { return null }
   }
 
-  const getStats = () => {
-    return {
-      totalUsers: Object.keys(allUsers).length,
-      totalCoins: Object.values(allUsers).reduce((sum, u) => sum + (u.coins || 0), 0),
-      totalPurchases: Object.values(allUsers).reduce((sum, u) => sum + (u.totalPurchases || 0), 0)
-    }
+  const getStats = async () => {
+    try { return await getUserStats() } catch { return { totalUsers: 0, totalCoins: 0, totalPurchases: 0 } }
+  }
+
+  const checkLoginTaken = async (login) => {
+    const key = generateLoginKey(login.trim())
+    if (allUsers[key]) return true
+    try { return await isLoginTaken(login) } catch { return false }
   }
 
   return (
     <AuthContext.Provider value={{
-      user,
-      allUsers,
-      mounted,
-      register,
-      login,
-      logout,
+      user, allUsers, mounted,
+      register, login, logout,
       addPurchaseBonus,
-      getUserByReferralCode,
-      getStats,
-      isLoginTaken
+      getUserByReferralCode, getStats,
+      isLoginTaken: checkLoginTaken,
     }}>
       {children}
     </AuthContext.Provider>

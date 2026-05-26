@@ -33,13 +33,22 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false)
   const [showPwd, setShowPwd] = useState({ pwd: false, confirm: false })
 
+  function checkNicknameSync(nickname) {
+    if (typeof window === 'undefined') return false
+    try {
+      const users = JSON.parse(localStorage.getItem('tenza_users') || '{}')
+      const key = 'tenza_user_' + nickname.toLowerCase().trim()
+      return !!users[key]
+    } catch { return false }
+  }
+
   useEffect(() => {
     if (form.login.trim().length >= 3) {
-      setLoginTaken(isLoginTaken(form.login.trim()))
+      setLoginTaken(checkNicknameSync(form.login.trim()))
     } else {
       setLoginTaken(false)
     }
-  }, [form.login, isLoginTaken])
+  }, [form.login])
 
   useEffect(() => {
     const code = searchParams?.get('ref')
@@ -63,7 +72,7 @@ function RegisterForm() {
     const loginErr = validateLogin(form.login, locale)
     if (loginErr) { setError(loginErr); return }
 
-    if (isLoginTaken(form.login.trim())) {
+    if (checkNicknameSync(form.login.trim())) {
       setError(lang.loginTaken)
       return
     }
@@ -78,13 +87,22 @@ function RegisterForm() {
     if (refErr) { setError(refErr); return }
 
     setLoading(true)
-    const result = register(form.login, form.password, referralCode || null)
+    console.log('[REGISTER] attempting register for:', form.login)
+    const result = await register(form.login, form.password, referralCode || null)
+    console.log('[REGISTER] result:', result)
+    console.log('[REGISTER] tenza_users after register:', localStorage.getItem('tenza_users'))
 
     if (result.success) {
       localStorage.setItem('tenza_user_email', form.login)
       router.push('/')
     } else {
-      setError(result.error)
+      const errMap = {
+        'Login va parol kiritish majburiy': "Barcha maydonlarni to'ldiring",
+        'Login kamida 3 belgi bolishi kerak': lang.minLogin,
+        'Parol kamida 4 belgi bolishi kerak': lang.minPassword,
+        'Bu login allaqachon ishlatilgan': lang.loginTaken,
+      }
+      setError(errMap[result.error] || result.error)
     }
     setLoading(false)
   }

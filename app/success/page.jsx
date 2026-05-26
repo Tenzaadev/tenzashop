@@ -8,6 +8,7 @@ import {
   Coins, Package, CreditCard, CheckCircle, QrCode
 } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { getAllOrders } from '@/lib/firestore'
 
 const L = {
   uz: {
@@ -117,11 +118,13 @@ function SuccessContent() {
 
   useEffect(() => {
     if (userEmail) localStorage.setItem('tenza_user_email', userEmail)
-    try {
-      const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-      const found = orders.find(o => (o.id || o.orderId) === orderId)
-      if (found) setOrder(found)
-    } catch {}
+    ;(async () => {
+      try {
+        const orders = await getAllOrders()
+        const found = orders.find(o => (o.id || o.orderId) === orderId)
+        if (found) setOrder(found)
+      } catch {}
+    })()
   }, [orderId, userEmail])
 
   return (

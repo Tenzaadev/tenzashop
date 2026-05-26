@@ -5,7 +5,7 @@ import {
   Plus, Edit2, Trash2, Save, X, Upload, Search, Package,
   DollarSign, Hash, Eye, TrendingUp, Star
 } from 'lucide-react'
-import { products as defaultProducts, categories } from '@/data/products'
+import { getProducts, saveProducts, updateProduct, addProduct, deleteProduct, updateStock, categories } from '@/data/productStore'
 import { useHeatMap } from '@/hooks/useHeatMap'
 import { useI18n } from '@/i18n'
 import ImageUpload from '@/components/ImageUpload'
@@ -107,13 +107,7 @@ export default function AdminProductsPage() {
   const [stats, setStats] = useState({ total: 0, inStock: 0, lowStock: 0, outOfStock: 0 })
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('tenza_products') || 'null')
-    if (saved && saved.length > 0) {
-      setProducts(saved)
-    } else {
-      setProducts(defaultProducts)
-      localStorage.setItem('tenza_products', JSON.stringify(defaultProducts))
-    }
+    setProducts(getProducts())
   }, [])
 
   useEffect(() => {
@@ -135,18 +129,14 @@ export default function AdminProductsPage() {
   const catNames = {}
   categories.forEach(c => { catNames[c.id] = c.name })
 
-  const persist = (updated) => {
-    setProducts(updated)
-    localStorage.setItem('tenza_products', JSON.stringify(updated))
-  }
-
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingProduct) return
-    persist(products.map(p => p.id === editingProduct.id ? editingProduct : p))
+    await updateProduct(editingProduct.id, editingProduct)
+    setProducts(getProducts())
     setEditingProduct(null)
   }
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     const product = {
       id: (newProduct.category || 'product') + '-' + Date.now().toString(36),
       name: newProduct.name,
@@ -162,18 +152,24 @@ export default function AdminProductsPage() {
       isNew: newProduct.isNew,
       isLimited: newProduct.isLimited
     }
-    persist([product, ...products])
+    await addProduct(product)
+    setProducts(getProducts())
     setNewProduct({ name: '', category: 'hoodie', price: '', oldPrice: '', stock: '', sizes: 'S,M,L,XL', colors: '#000000,#FFFFFF', image: '', description: '', isNew: false, isLimited: false })
     setShowAddForm(false)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!confirm(ll.confirmDelete)) return
-    persist(products.filter(p => p.id !== id))
+    await deleteProduct(id)
+    setProducts(getProducts())
   }
 
-  const handleStockChange = (id, change) => {
-    persist(products.map(p => p.id === id ? { ...p, stock: Math.max(0, (p.stock || 0) + change) } : p))
+  const handleStockChange = async (id, change) => {
+    const product = products.find(p => p.id === id)
+    if (product) {
+      await updateStock(id, (product.stock || 0) + change)
+      setProducts(getProducts())
+    }
   }
 
   const productName = (p) => typeof p.name === 'string' ? p.name : (p.name?.[locale] || p.name?.en || '')

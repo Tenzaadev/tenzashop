@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, Shirt, Palette, RefreshCw } from 'lucide-react'
-import { products } from '@/data/products'
+import { getProducts } from '@/data/productStore'
 import { useI18n } from '@/i18n'
 import Header from '../components/Header'
 import ProductCard from '../components/ProductCard'
@@ -36,16 +36,17 @@ export default function AIStylistPage() {
   const getRecommendations = () => {
     setLoading(true)
     setTimeout(() => {
-      let filtered = [...products]
+      const all = getProducts()
+      let filtered = [...all]
 
       if (preferences.style === 'Futuristik') {
-        filtered = products.filter(p => p.category === 'limited' || p.isLimited)
+        filtered = all.filter(p => p.category === 'limited' || p.isLimited)
       } else if (preferences.style === 'Sport') {
-        filtered = products.filter(p => ['tshirt', 'shorts', 'sneakers'].includes(p.category))
+        filtered = all.filter(p => ['tshirt', 'shorts', 'sneakers'].includes(p.category))
       } else if (preferences.style === "Ko'cha") {
-        filtered = products.filter(p => ['hoodie', 'sneakers', 'accessories'].includes(p.category))
+        filtered = all.filter(p => ['hoodie', 'sneakers', 'accessories'].includes(p.category))
       } else if (preferences.style === 'Minimal') {
-        filtered = products.filter(p => ['tshirt', 'hoodie'].includes(p.category))
+        filtered = all.filter(p => ['tshirt', 'hoodie'].includes(p.category))
       }
 
       if (preferences.budget && preferences.budget !== '999') {

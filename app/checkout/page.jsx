@@ -11,9 +11,10 @@ import { useI18n } from '@/i18n'
 import { useAuth } from '@/context/AuthContext'
 import { getUserCoins, calculateCoinReward, COIN_USD_VALUE } from '@/utils/coins'
 import {
-  generateOrderId, saveOrder, clearCart, getCart,
+  generateOrderId, clearCart, getCart,
   autoFillUserProfile, saveProfileData, sendTelegramNotification
 } from '@/utils/payment'
+import { addOrder } from '@/lib/firestore'
 import Header from '../components/Header'
 
 const L = {
@@ -196,7 +197,7 @@ const L = {
 
 export default function CheckoutPage() {
   const { locale, t } = useI18n()
-  const { user } = useAuth()
+  const { user, addPurchaseBonus } = useAuth()
   const ll = L[locale] || L.en
 
   const [step, setStep] = useState(1)
@@ -257,7 +258,7 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0
   }
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (submitting) return
     setSubmitting(true)
 
@@ -290,13 +291,17 @@ export default function CheckoutPage() {
       createdAt: new Date().toISOString(),
     }
 
-    saveOrder(order)
+    await addOrder(order)
     saveProfileData(form)
     clearCart()
     localStorage.setItem('tenza_user_email', form.customerEmail)
     sendTelegramNotification(order)
 
-    window.location.href = `/success?order=${orderId}&email=${encodeURIComponent(form.customerEmail)}`
+    if (user?.login) {
+      await addPurchaseBonus(user.login, order.total)
+    }
+
+    window.location.href = `/success?order=${orderId}&email=${encodeURIComponent(form.customerEmail)}&coins=0&status=pending_verification`
   }
 
   if (cartItems.length === 0) {

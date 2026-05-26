@@ -7,6 +7,7 @@ import {
   Users, Bell, Gift, Settings, LogOut, Menu, X
 } from 'lucide-react'
 import { getPendingCount } from '@/data/supportMessages'
+import { subscribeOrders } from '@/lib/firestore'
 
 const navItems = [
   { href: '/admin', label: { uz: 'Dashboard', ru: 'Дашборд', en: 'Dashboard', fi: 'Hallintapaneeli', sv: 'Dashboard' }, icon: LayoutDashboard },
@@ -29,27 +30,32 @@ export default function AdminLayout({ children }) {
 
   const refreshBadges = () => {
     try {
-      const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-      const pendingOrders = orders.filter(o => o.status === 'pending_verification').length
       const pendingSupport = getPendingCount()
       const notifs = JSON.parse(localStorage.getItem('tenza_notifications') || '{}')
       let unread = 0
       Object.values(notifs).forEach(arr => {
         arr.forEach(n => { if (!n.read) unread++ })
       })
-      setBadges({ orders: pendingOrders, support: pendingSupport, notifications: unread })
+      setBadges(prev => ({ ...prev, support: pendingSupport, notifications: unread }))
     } catch {}
   }
 
   useEffect(() => {
     if (localStorage.getItem('tenza_admin_auth') === 'true') setAuthed(true)
     refreshBadges()
+
+    const unsubOrders = subscribeOrders((allOrders) => {
+      const pendingOrders = allOrders.filter(o => o.status === 'pending_verification').length
+      setBadges(prev => ({ ...prev, orders: pendingOrders }))
+    })
+
     const h = () => refreshBadges()
     window.addEventListener('support-message-updated', h)
     window.addEventListener('notification-added', h)
     window.addEventListener('coins-updated', h)
     window.addEventListener('storage', h)
     return () => {
+      unsubOrders()
       window.removeEventListener('support-message-updated', h)
       window.removeEventListener('notification-added', h)
       window.removeEventListener('coins-updated', h)

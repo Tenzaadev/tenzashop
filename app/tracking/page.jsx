@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowLeft, CheckCircle, Clock, MessageSquare, Package, Loader2 } from 'lucide-react'
+import { getAllOrders } from '@/lib/firestore'
 
 const statusSteps = [
   { key: 'pending_verification', icon: '⏳', label_uz: "To'lov kutilmoqda", label_ru: 'Ожидание оплаты', label_en: 'Pending payment', label_fi: 'Odottaa maksua', label_sv: 'Väntar på betalning' },
@@ -63,11 +64,14 @@ function TrackingContent() {
   }, [])
 
   useEffect(() => {
-    if (orderId) {
-      const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-      const found = orders.find(o => (o.orderId || o.id) === orderId)
-      setOrder(found)
-    }
+    if (!orderId) return
+    ;(async () => {
+      try {
+        const orders = await getAllOrders()
+        const found = orders.find(o => (o.orderId || o.id) === orderId)
+        setOrder(found)
+      } catch {}
+    })()
   }, [orderId])
 
   const lang = L[locale] || L.uz

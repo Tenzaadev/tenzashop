@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Star } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/context/AuthContext'
+import { subscribeProductReviews, addReview } from '@/lib/firestore'
 
 const L = {
   uz: {
@@ -37,47 +38,6 @@ const L = {
   },
 }
 
-export function getProductReviews(productId) {
-  try {
-    const all = JSON.parse(localStorage.getItem('tenza_reviews') || '[]')
-    return all.filter(r => r.productId === productId)
-  } catch { return [] }
-}
-
-export function getAllReviews() {
-  try {
-    return JSON.parse(localStorage.getItem('tenza_reviews') || '[]')
-  } catch { return [] }
-}
-
-export function saveReview({ productId, orderId, userId, userName, rating, comment, existingId, photos }) {
-  const reviews = getAllReviews()
-  const now = new Date().toISOString()
-  const review = {
-    id: existingId || 'REV-' + Date.now().toString(36),
-    productId,
-    orderId: orderId || null,
-    userId: userId || 'anonymous',
-    userName: userName || 'Mijoz',
-    rating,
-    comment: (comment || '').trim(),
-    photos: photos || [],
-    createdAt: existingId ? (reviews.find(r => r.id === existingId)?.createdAt || now) : now,
-    updatedAt: now,
-  }
-  const filtered = reviews.filter(r => r.id !== review.id)
-  filtered.push(review)
-  localStorage.setItem('tenza_reviews', JSON.stringify(filtered))
-  window.dispatchEvent(new CustomEvent('reviews-updated'))
-  return review
-}
-
-export function deleteReview(reviewId) {
-  const reviews = getAllReviews().filter(r => r.id !== reviewId)
-  localStorage.setItem('tenza_reviews', JSON.stringify(reviews))
-  window.dispatchEvent(new CustomEvent('reviews-updated'))
-}
-
 export default function ProductReviews({ productId }) {
   const { locale } = useI18n()
   const { user } = useAuth()
@@ -88,31 +48,28 @@ export default function ProductReviews({ productId }) {
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const loadReviews = () => {
-    const productReviews = getProductReviews(productId)
-    setReviews(productReviews.reverse())
-    if (productReviews.length > 0) {
-      const total = productReviews.length
-      const sum = productReviews.reduce((s, r) => s + r.rating, 0)
-      const dist = [0, 0, 0, 0, 0]
-      productReviews.forEach(r => dist[r.rating - 1]++)
-      setStats({ average: +(sum / total).toFixed(1), total, distribution: dist })
-    } else {
-      setStats({ average: 0, total: 0, distribution: [0, 0, 0, 0, 0] })
-    }
-  }
-
   useEffect(() => {
-    loadReviews()
-    const h = () => loadReviews()
-    window.addEventListener('reviews-updated', h)
-    return () => window.removeEventListener('reviews-updated', h)
+    if (!productId) return
+    const computeStats = (data) => {
+      setReviews(data)
+      if (data.length > 0) {
+        const total = data.length
+        const sum = data.reduce((s, r) => s + r.rating, 0)
+        const dist = [0, 0, 0, 0, 0]
+        data.forEach(r => dist[r.rating - 1]++)
+        setStats({ average: +(sum / total).toFixed(1), total, distribution: dist })
+      } else {
+        setStats({ average: 0, total: 0, distribution: [0, 0, 0, 0, 0] })
+      }
+    }
+    const unsub = subscribeProductReviews(productId, computeStats)
+    return () => unsub()
   }, [productId])
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (newRating === 0 || !user) return
     setSubmitting(true)
-    saveReview({
+    await addReview({
       productId,
       userId: user.login,
       userName: user.login,

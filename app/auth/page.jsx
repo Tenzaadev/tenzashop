@@ -30,7 +30,7 @@ export default function AuthPage() {
     if (result.success) {
       router.push('/')
     } else {
-      setError(result.error)
+      setError(getErrorMessage(result.error))
     }
     setLoading(false)
   }
@@ -51,7 +51,7 @@ export default function AuthPage() {
     if (result.success) {
       router.push('/')
     } else {
-      setError(result.error)
+      setError(getErrorMessage(result.error))
     }
     setLoading(false)
   }
@@ -60,6 +60,18 @@ export default function AuthPage() {
     logout()
     setIsRegister(false)
     setLoginForm({ login: '', password: '' })
+  }
+
+  const getErrorMessage = (key) => {
+    const map = {
+      'USER_NOT_FOUND': t('user_not_found') || 'Foydalanuvchi topilmadi',
+      'WRONG_PASSWORD': t('wrong_password') || 'Parol notog\'ri',
+      'Login va parol kiritish majburiy': t('fill_all') || 'Login va parol kiritish majburiy',
+      'Login kamida 3 belgi bolishi kerak': t('login_min') || 'Login kamida 3 belgi bolishi kerak',
+      'Parol kamida 4 belgi bolishi kerak': t('password_min') || 'Parol kamida 4 belgi bolishi kerak',
+      'Bu login allaqachon ishlatilgan': t('login_taken') || 'Bu login allaqachon ishlatilgan',
+    }
+    return map[key] || key
   }
 
   const copyReferral = () => {

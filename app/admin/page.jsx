@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { getOrders, getOrderStats, itemName } from '@/utils/orders'
-import { products } from '@/data/products'
+import { getProducts } from '@/data/productStore'
 import { useHeatMap } from '@/hooks/useHeatMap'
 import { useI18n } from '@/i18n'
 
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
           </h3>
           <div className="space-y-3">
             {hotProducts.map((id, i) => {
-              const product = products.find(p => p.id === id)
+              const product = getProducts().find(p => p.id === id)
               if (!product) return null
               const s = stats[id] || {}
               return (

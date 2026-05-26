@@ -6,7 +6,7 @@ import { ArrowLeft, Heart, ShoppingBag, Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useWishlist } from '@/hooks/useWishlist'
 import { useCart } from '@/hooks/useCart'
-import { products } from '@/data/products'
+import { getProducts } from '@/data/productStore'
 import Header from '../components/Header'
 
 const L = {
@@ -40,7 +40,10 @@ export default function WishlistPage() {
   const [items, setItems] = useState([])
 
   useEffect(() => {
-    setItems(products.filter(p => wishlist.includes(p.id)))
+    const load = () => setItems(getProducts().filter(p => wishlist.includes(p.id)))
+    load()
+    window.addEventListener('products-updated', load)
+    return () => window.removeEventListener('products-updated', load)
   }, [wishlist])
 
   const productName = (p) => typeof p.name === 'string' ? p.name : (p.name?.[locale] || p.name?.en || '')

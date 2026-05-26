@@ -4,72 +4,17 @@ import { motion, useInView } from 'framer-motion'
 import { useI18n } from '@/i18n'
 import { categories } from '@/data/categories'
 import { useRouter } from 'next/navigation'
-import { Shirt, Footprints, Gem, Scissors, Sun, Watch, ShoppingBag, Cloud } from 'lucide-react'
 
-const categoryData = {
-  hoodie: {
-    icon: Shirt,
-    gradient: 'from-violet-600/30 via-violet-900/20 to-black',
-    bg: 'bg-violet-500/5',
-    border: 'border-violet-500/20',
-    accent: '#a855f7'
-  },
-  tshirt: {
-    icon: Scissors,
-    gradient: 'from-blue-600/30 via-blue-900/20 to-black',
-    bg: 'bg-blue-500/5',
-    border: 'border-blue-500/20',
-    accent: '#3b82f6'
-  },
-  pants: {
-    icon: Watch,
-    gradient: 'from-indigo-600/30 via-indigo-900/20 to-black',
-    bg: 'bg-indigo-500/5',
-    border: 'border-indigo-500/20',
-    accent: '#6366f1'
-  },
-  shorts: {
-    icon: Sun,
-    gradient: 'from-cyan-600/30 via-cyan-900/20 to-black',
-    bg: 'bg-cyan-500/5',
-    border: 'border-cyan-500/20',
-    accent: '#06b6d4'
-  },
-  jacket: {
-    icon: Shirt,
-    gradient: 'from-red-600/30 via-red-900/20 to-black',
-    bg: 'bg-red-500/5',
-    border: 'border-red-500/20',
-    accent: '#ef4444'
-  },
-  windbreaker: {
-    icon: Cloud,
-    gradient: 'from-sky-600/30 via-sky-900/20 to-black',
-    bg: 'bg-sky-500/5',
-    border: 'border-sky-500/20',
-    accent: '#0ea5e9'
-  },
-  sneakers: {
-    icon: Footprints,
-    gradient: 'from-orange-600/30 via-orange-900/20 to-black',
-    bg: 'bg-orange-500/5',
-    border: 'border-orange-500/20',
-    accent: '#f97316'
-  },
-  accessories: {
-    icon: ShoppingBag,
-    gradient: 'from-amber-600/30 via-amber-900/20 to-black',
-    bg: 'bg-amber-500/5',
-    border: 'border-amber-500/20',
-    accent: '#f59e0b'
-  },
-  limited: {
-    icon: Gem,
-    gradient: 'from-[#ccff00]/30 via-[#ccff00]/10 to-black',
-    bg: 'bg-[#ccff00]/5',
-    border: 'border-[#ccff00]/30',
-    accent: '#ccff00'
-  },
+const stickers = {
+  hoodie: { emoji: '🧥', gradient: 'from-violet-500/40 via-fuchsia-600/20', accent: '#a855f7', glow: '#c084fc', pattern: 'radial-gradient(circle at 20% 80%, #a855f7 0%, transparent 60%)' },
+  tshirt: { emoji: '👕', gradient: 'from-blue-500/40 via-cyan-600/20', accent: '#3b82f6', glow: '#60a5fa', pattern: 'radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 60%)' },
+  pants: { emoji: '👖', gradient: 'from-indigo-500/40 via-violet-600/20', accent: '#6366f1', glow: '#818cf8', pattern: 'radial-gradient(circle at 50% 120%, #6366f1 0%, transparent 60%)' },
+  shorts: { emoji: '🩳', gradient: 'from-cyan-500/40 via-teal-600/20', accent: '#06b6d4', glow: '#22d3ee', pattern: 'radial-gradient(circle at 10% 10%, #06b6d4 0%, transparent 60%)' },
+  jacket: { emoji: '🧥', gradient: 'from-red-500/40 via-rose-600/20', accent: '#ef4444', glow: '#f87171', pattern: 'radial-gradient(circle at 90% 70%, #ef4444 0%, transparent 60%)' },
+  windbreaker: { emoji: '🧥', gradient: 'from-sky-500/40 via-blue-600/20', accent: '#0ea5e9', glow: '#38bdf8', pattern: 'radial-gradient(circle at 30% 30%, #0ea5e9 0%, transparent 60%)' },
+  sneakers: { emoji: '👟', gradient: 'from-orange-500/40 via-amber-600/20', accent: '#f97316', glow: '#fb923c', pattern: 'radial-gradient(circle at 70% 50%, #f97316 0%, transparent 60%)' },
+  accessories: { emoji: '🎒', gradient: 'from-amber-500/40 via-yellow-600/20', accent: '#f59e0b', glow: '#fbbf24', pattern: 'radial-gradient(circle at 40% 90%, #f59e0b 0%, transparent 60%)' },
+  limited: { emoji: '💎', gradient: 'from-[#ccff00]/40 via-lime-500/20', accent: '#ccff00', glow: '#ccff00', pattern: 'radial-gradient(circle at 60% 40%, #ccff00 0%, transparent 60%)' },
 }
 
 export default function CategorySection() {
@@ -96,8 +41,7 @@ export default function CategorySection() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
           {categories.map((cat, i) => {
-            const style = categoryData[cat.id] || categoryData.tshirt
-            const Icon = style.icon
+            const s = stickers[cat.id] || stickers.tshirt
             return (
               <motion.div
                 key={cat.id}
@@ -107,19 +51,68 @@ export default function CategorySection() {
               >
                 <button
                   onClick={() => handleCategoryClick(cat.slug)}
-                  className={`group relative flex flex-col items-center justify-center aspect-square rounded-2xl ${style.bg} ${style.border} border overflow-hidden transition-all duration-500 hover:scale-[1.03] hover:border-white/30 cursor-pointer`}
+                  className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden transition-all duration-500 cursor-pointer"
+                  style={{ perspective: '600px' }}
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${style.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                  {/* Hover 3D tilt container */}
+                  <div className="absolute inset-0 transition-all duration-500 group-hover:[transform:rotateX(2deg)_rotateY(-2deg)_scale(1.02)]" />
 
-                  <div className="relative z-10 p-4 rounded-2xl mb-3 transition-all duration-300 group-hover:scale-110" style={{ backgroundColor: `${style.accent}15` }}>
-                    <Icon size={28} style={{ color: style.accent }} className="transition-all group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
+                  {/* Background gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-40 group-hover:opacity-70 transition-opacity duration-500`} />
+
+                  {/* Pattern glow */}
+                  <div className="absolute inset-0 opacity-30 group-hover:opacity-60 transition-opacity duration-500" style={{ background: s.pattern }} />
+
+                  {/* Border glow on hover */}
+                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ boxShadow: `inset 0 0 30px ${s.glow}33, 0 0 20px ${s.glow}22` }} />
+
+                  {/* Orb glow behind sticker */}
+                  <div className="absolute w-16 h-16 rounded-full blur-2xl opacity-0 group-hover:opacity-60 transition-all duration-500" style={{ background: s.glow }} />
+
+                  {/* Sticker container */}
+                  <div
+                    className="relative z-10 mb-3 transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1"
+                    style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' }}
+                  >
+                    {/* Sticker base with glassmorphism */}
+                    <div
+                      className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:shadow-2xl"
+                      style={{
+                        background: `linear-gradient(135deg, ${s.accent}25, ${s.accent}08)`,
+                        backdropFilter: 'blur(8px)',
+                        border: `1px solid ${s.accent}33`,
+                        boxShadow: `0 8px 32px ${s.accent}22, inset 0 1px 0 ${s.accent}44`,
+                      }}
+                    >
+                      {/* Inner glow */}
+                      <div
+                        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                        style={{
+                          background: `linear-gradient(135deg, ${s.accent}33, transparent 60%)`,
+                        }}
+                      />
+                      <span
+                        className="relative text-3xl md:text-4xl leading-none transition-all duration-500 group-hover:scale-110"
+                        style={{ filter: `drop-shadow(0 0 8px ${s.glow}66)` }}
+                      >
+                        {s.emoji}
+                      </span>
+                    </div>
                   </div>
 
-                  <span className="relative z-10 text-white font-bold text-xs md:text-sm group-hover:text-[#ccff00] transition-colors text-center px-2">
+                  {/* Category name */}
+                  <span
+                    className="relative z-10 text-white font-bold text-xs md:text-sm text-center px-2 transition-all duration-500 group-hover:-translate-y-0.5"
+                    style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                  >
                     {t(cat.nameKey)}
                   </span>
 
-                  <div className="absolute bottom-3 w-8 h-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-all" style={{ backgroundColor: style.accent }} />
+                  {/* Accent bar */}
+                  <div
+                    className="absolute bottom-3 w-6 h-1 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:w-10"
+                    style={{ background: s.accent, boxShadow: `0 0 12px ${s.glow}88` }}
+                  />
                 </button>
               </motion.div>
             )

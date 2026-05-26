@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, Send, MessageSquare, CheckCircle, RefreshCw } from 'lucide-react'
-import { saveSupportMessage, getMessagesByEmail, addCustomerReply } from '@/data/supportMessages'
+import { subscribeSupportMessages, addSupportMessage } from '@/lib/firestore'
+import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useI18n } from '@/i18n'
 
 const translations = {
@@ -231,6 +233,7 @@ export default function SupportPage() {
   const [replyText, setReplyText] = useState('')
   const [expandedMsg, setExpandedMsg] = useState(null)
   const [replySent, setReplySent] = useState(false)
+  const [pendingMsgId, setPendingMsgId] = useState(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('tenza_user_email')
@@ -238,35 +241,18 @@ export default function SupportPage() {
   }, [])
 
   useEffect(() => {
-    if (email) {
-      const msgs = getMessagesByEmail(email)
-      setUserMessages(msgs)
-    }
-  }, [email])
-
-  useEffect(() => {
-    if (activeTab === 'chat' && email) {
-      const msgs = getMessagesByEmail(email)
-      setUserMessages(msgs)
-    }
-  }, [activeTab])
-
-  useEffect(() => {
     if (!email) return
-    const h = () => {
+    const unsub = subscribeSupportMessages((data) => {
       if (activeTab === 'chat') {
-        const msgs = getMessagesByEmail(email)
-        setUserMessages(msgs)
+        setUserMessages(data.filter(m => m.email === email))
       }
-    }
-    window.addEventListener('support-message-updated', h)
-    return () => window.removeEventListener('support-message-updated', h)
+    })
+    return () => unsub()
   }, [email, activeTab])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
-      const tab = params.get('tab')
       const msgId = params.get('msg')
       const autoId = params.get('auto')
 
@@ -293,69 +279,56 @@ export default function SupportPage() {
             textarea.setSelectionRange(len, len)
           }
         }, 300)
-      } else if (tab === 'chat') {
+      } else if (params.get('tab') === 'chat') {
         setActiveTab('chat')
-        const chatEmail = email || localStorage.getItem('tenza_user_email') || ''
-        if (chatEmail) {
-          if (!email) setEmail(chatEmail)
-          const msgs = getMessagesByEmail(chatEmail)
-          setUserMessages(msgs)
-        }
+        const chatEmail = localStorage.getItem('tenza_user_email') || ''
+        if (chatEmail && !email) setEmail(chatEmail)
       }
 
-      if (msgId && userMessages.length > 0) {
-        const found = userMessages.find(m => m.id === msgId)
-        if (found) setExpandedMsg(msgId)
-      }
+      if (msgId) setPendingMsgId(msgId)
     }
-  }, [userMessages, email])
+  }, [])
+
+  useEffect(() => {
+    if (pendingMsgId && userMessages.length > 0) {
+      const found = userMessages.find(m => m.id === pendingMsgId)
+      if (found) setExpandedMsg(pendingMsgId)
+    }
+  }, [userMessages, pendingMsgId])
 
   const loadMessages = () => {
     const e = email || localStorage.getItem('tenza_user_email') || ''
-    if (e) {
-      const msgs = getMessagesByEmail(e)
-      setUserMessages(msgs)
-      if (!email) setEmail(e)
-    }
+    if (e && !email) setEmail(e)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!name || !email || !message) return
     setSending(true)
-    saveSupportMessage({ name, email, subject, orderId, message })
+    await addSupportMessage({ name, email, subject, orderId, message })
     localStorage.setItem('tenza_user_email', email)
-    setTimeout(() => {
-      setSending(false)
-      setSent(true)
-      setName('')
-      setMessage('')
-      setOrderId('')
-    }, 500)
+    setSending(false)
+    setSent(true)
+    setName('')
+    setMessage('')
+    setOrderId('')
   }
 
-  const handleCustomerReply = (messageId) => {
+  const handleCustomerReply = async (messageId) => {
     if (!replyText.trim()) return
-    const user = JSON.parse(localStorage.getItem('tenza_user') || 'null')
-    const messages = JSON.parse(localStorage.getItem('tenza_support_messages') || '[]')
-    const msgIndex = messages.findIndex(m => m.id === messageId)
-    if (msgIndex >= 0) {
-      messages[msgIndex].replies.push({
+    await updateDoc(doc(db, 'support', messageId), {
+      replies: arrayUnion({
         id: 'REPLY-' + Date.now().toString(36),
         from: 'customer',
         text: replyText.trim(),
-        userName: user?.nickname || user?.email || 'Mijoz',
-        createdAt: new Date().toISOString()
-      })
-      messages[msgIndex].status = 'pending'
-      messages[msgIndex].updatedAt = new Date().toISOString()
-      localStorage.setItem('tenza_support_messages', JSON.stringify(messages))
-      window.dispatchEvent(new CustomEvent('support-message-updated'))
-    }
+        createdAt: new Date().toISOString(),
+      }),
+      status: 'pending',
+      updatedAt: serverTimestamp(),
+    })
     setReplyText('')
     setReplySent(true)
     setTimeout(() => setReplySent(false), 3000)
-    loadMessages()
   }
 
   const handleTabSwitch = (tab) => {

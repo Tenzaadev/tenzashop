@@ -10,18 +10,22 @@ import { COIN_USD_VALUE } from '@/utils/coins'
 import { getOrders } from '@/data/orders'
 
 const L = {
-  uz: { title: "Profil", name: "Ism", email: "Email", phone: "Telefon", address: "Manzil", save: "Saqlash", saved: "Saqlanildi!", personalInfo: "Shaxsiy ma'lumotlar", referralTitle: "Referal dasturi", referralDesc: "Do'stlaringizni taklif qiling va coin yig'ing!", yourCode: "Kodingiz", copy: "Nusxalash", copied: "Nusxalandi!", coins: "Coin", referrals: "Takliflar", referralLink: "Referal havola", viewAll: "Barchasini ko'rish", invited: "Taklif qilindi", by: "Taklif qildi", logout: "Chiqish", back: "Orqaga", coinHistory: "Coin tarixi", noHistory: "Hali coin harakati yo'q", coinUsed: "Buyurtmada ishlatildi", coinEarned: "Buyurtma bonusi", coinReferred: "Referal bonusi" },
-  ru: { title: "Профиль", name: "Имя", email: "Email", phone: "Телефон", address: "Адрес", save: "Сохранить", saved: "Сохранено!", personalInfo: "Личные данные", referralTitle: "Реферальная программа", referralDesc: "Приглашайте друзей и зарабатывайте монеты!", yourCode: "Ваш код", copy: "Копировать", copied: "Скопировано!", coins: "Монет", referrals: "Рефералов", referralLink: "Реферальная ссылка", viewAll: "Посмотреть все", invited: "Приглашён", by: "Пригласил", logout: "Выйти", back: "Назад", coinHistory: "История монет", noHistory: "История пуста", coinUsed: "Использовано в заказе", coinEarned: "Бонус за заказ", coinReferred: "Реферальный бонус" },
-  en: { title: "Profile", name: "Name", email: "Email", phone: "Phone", address: "Address", save: "Save", saved: "Saved!", personalInfo: "Personal Info", referralTitle: "Referral Program", referralDesc: "Invite friends and earn coins!", yourCode: "Your code", copy: "Copy", copied: "Copied!", coins: "Coins", referrals: "Referrals", referralLink: "Referral link", viewAll: "View all", invited: "Invited", by: "Invited by", logout: "Logout", back: "Back", coinHistory: "Coin History", noHistory: "No coin activity yet", coinUsed: "Used in order", coinEarned: "Order reward", coinReferred: "Referral bonus" },
-  fi: { title: "Profiili", name: "Nimi", email: "Sähköposti", phone: "Puhelin", address: "Osoite", save: "Tallenna", saved: "Tallennettu!", personalInfo: "Henkilötiedot", referralTitle: "Kutsuntaohjelma", referralDesc: "Kutsu ystäviä ja ansaitse kolikoita!", yourCode: "Koodisi", copy: "Kopioi", copied: "Kopioitu!", coins: "Kolikot", referrals: "Kutsut", referralLink: "Kutsulinkki", viewAll: "Katso kaikki", invited: "Kutsuttu", by: "Kutsuja", logout: "Kirjaudu ulos", back: "Takaisin", coinHistory: "Kolikkohistoria", noHistory: "Ei kolikkoaktiviteettia", coinUsed: "Käytetty tilauksessa", coinEarned: "Tilauspalkkio", coinReferred: "Kutsupalkkio" },
-  sv: { title: "Profil", name: "Namn", email: "E-post", phone: "Telefon", address: "Adress", save: "Spara", saved: "Sparad!", personalInfo: "Personlig info", referralTitle: "Referensprogram", referralDesc: "Bjud in vänner och tjäna mynt!", yourCode: "Din kod", copy: "Kopiera", copied: "Kopierad!", coins: "Mynt", referrals: "Referenser", referralLink: "Referenslänk", viewAll: "Visa alla", invited: "Inbjuden", by: "Inbjuden av", logout: "Logga ut", back: "Tillbaka", coinHistory: "Mynthistorik", noHistory: "Ingen myntaktivitet än", coinUsed: "Använt i beställning", coinEarned: "Beställningsbonus", coinReferred: "Värvningsbonus" },
+  uz: { title: "Profil", name: "Ism", email: "Email", phone: "Telefon", address: "Manzil", save: "Saqlash", saved: "Saqlanildi!", personalInfo: "Shaxsiy ma'lumotlar", referralTitle: "Referal dasturi", referralDesc: "Do'stlaringizni taklif qiling va coin yig'ing!", yourCode: "Kodingiz", copy: "Nusxalash", copied: "Nusxalandi!", coins: "Coin", referrals: "Takliflar", referralLink: "Referal havola", viewAll: "Barchasini ko'rish", invited: "Taklif qilindi", by: "Taklif qildi", logout: "Chiqish", back: "Orqaga", coinHistory: "Coin tarixi", noHistory: "Hali coin harakati yo'q", coinUsed: "Buyurtmada ishlatildi", coinEarned: "Buyurtma bonusi", coinReferred: "Referal bonusi", namePlaceholder: "Ismingizni kiriting", emailPlaceholder: "email@example.com", phonePlaceholder: "+998 90 123 45 67", addressPlaceholder: "Shahar, ko'cha, uy raqami", nameRequired: 'Ism kiritish shart', emailRequired: 'Email kiritish shart', emailInvalid: "Noto'g'ri email formati", phoneInvalid: 'Telefon kamida 10 ta raqam bo\'lishi kerak' },
+  ru: { title: "Профиль", name: "Имя", email: "Email", phone: "Телефон", address: "Адрес", save: "Сохранить", saved: "Сохранено!", personalInfo: "Личные данные", referralTitle: "Реферальная программа", referralDesc: "Приглашайте друзей и зарабатывайте монеты!", yourCode: "Ваш код", copy: "Копировать", copied: "Скопировано!", coins: "Монет", referrals: "Рефералов", referralLink: "Реферальная ссылка", viewAll: "Посмотреть все", invited: "Приглашён", by: "Пригласил", logout: "Выйти", back: "Назад", coinHistory: "История монет", noHistory: "История пуста", coinUsed: "Использовано в заказе", coinEarned: "Бонус за заказ", coinReferred: "Реферальный бонус", namePlaceholder: "Введите имя", emailPlaceholder: "email@example.com", phonePlaceholder: "+998 90 123 45 67", addressPlaceholder: "Город, улица, дом", nameRequired: 'Имя обязательно', emailRequired: 'Email обязателен', emailInvalid: 'Неверный формат email', phoneInvalid: 'Телефон должен содержать минимум 10 цифр' },
+  en: { title: "Profile", name: "Name", email: "Email", phone: "Phone", address: "Address", save: "Save", saved: "Saved!", personalInfo: "Personal Info", referralTitle: "Referral Program", referralDesc: "Invite friends and earn coins!", yourCode: "Your code", copy: "Copy", copied: "Copied!", coins: "Coins", referrals: "Referrals", referralLink: "Referral link", viewAll: "View all", invited: "Invited", by: "Invited by", logout: "Logout", back: "Back", coinHistory: "Coin History", noHistory: "No coin activity yet", coinUsed: "Used in order", coinEarned: "Order reward", coinReferred: "Referral bonus", namePlaceholder: "Enter your name", emailPlaceholder: "email@example.com", phonePlaceholder: "+998 90 123 45 67", addressPlaceholder: "City, street, house number", nameRequired: 'Name is required', emailRequired: 'Email is required', emailInvalid: 'Invalid email format', phoneInvalid: 'Phone must have at least 10 digits' },
+  fi: { title: "Profiili", name: "Nimi", email: "Sähköposti", phone: "Puhelin", address: "Osoite", save: "Tallenna", saved: "Tallennettu!", personalInfo: "Henkilötiedot", referralTitle: "Kutsuntaohjelma", referralDesc: "Kutsu ystäviä ja ansaitse kolikoita!", yourCode: "Koodisi", copy: "Kopioi", copied: "Kopioitu!", coins: "Kolikot", referrals: "Kutsut", referralLink: "Kutsulinkki", viewAll: "Katso kaikki", invited: "Kutsuttu", by: "Kutsuja", logout: "Kirjaudu ulos", back: "Takaisin", coinHistory: "Kolikkohistoria", noHistory: "Ei kolikkoaktiviteettia", coinUsed: "Käytetty tilauksessa", coinEarned: "Tilauspalkkio", coinReferred: "Kutsupalkkio", namePlaceholder: "Syötä nimesi", emailPlaceholder: "email@example.com", phonePlaceholder: "+998 90 123 45 67", addressPlaceholder: "Kaupunki, katu, talon numero", nameRequired: 'Nimi vaaditaan', emailRequired: 'Sähköposti vaaditaan', emailInvalid: 'Virheellinen sähköpostimuoto', phoneInvalid: 'Puhelinnumerossa on oltava vähintään 10 numeroa' },
+  sv: { title: "Profil", name: "Namn", email: "E-post", phone: "Telefon", address: "Adress", save: "Spara", saved: "Sparad!", personalInfo: "Personlig info", referralTitle: "Referensprogram", referralDesc: "Bjud in vänner och tjäna mynt!", yourCode: "Din kod", copy: "Kopiera", copied: "Kopierad!", coins: "Mynt", referrals: "Referenser", referralLink: "Referenslänk", viewAll: "Visa alla", invited: "Inbjuden", by: "Inbjuden av", logout: "Logga ut", back: "Tillbaka", coinHistory: "Mynthistorik", noHistory: "Ingen myntaktivitet än", coinUsed: "Använt i beställning", coinEarned: "Beställningsbonus", coinReferred: "Värvningsbonus", namePlaceholder: "Ange ditt namn", emailPlaceholder: "email@example.com", phonePlaceholder: "+998 90 123 45 67", addressPlaceholder: "Stad, gata, husnummer", nameRequired: 'Namn krävs', emailRequired: 'E-post krävs', emailInvalid: 'Ogiltigt e-postformat', phoneInvalid: 'Telefon måste ha minst 10 siffror' },
 }
 
 export default function ProfilePage() {
   const { locale } = useI18n()
   const { user, logout } = useAuth()
   const lang = L[locale] || L.uz
-  const [userData, setUserData] = useState({ name: '', email: '', phone: '', address: '' })
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [errors, setErrors] = useState({})
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -29,15 +33,23 @@ export default function ProfilePage() {
   const [coinHistory, setCoinHistory] = useState([])
 
   useEffect(() => {
-    if (!user) { setCoins(0); setCoinHistory([]); return }
+    if (!user) { setCoins(0); setCoinHistory([]); setName(''); setEmail(''); setPhone(''); setAddress(''); return }
     try {
-      const saved = localStorage.getItem('tenza_user')
-      if (saved) {
-        setUserData(JSON.parse(saved))
+      const savedUser = JSON.parse(localStorage.getItem('tenza_user') || 'null')
+      if (savedUser) {
+        setName(savedUser.name || savedUser.nickname || user.login || '')
+        setEmail(savedUser.email || '')
+        setPhone(savedUser.phone || '')
+        setAddress(savedUser.address || '')
       } else {
-        setUserData({ name: '', email: '', phone: '', address: '' })
+        setName(user.login || '')
+        setEmail('')
+        setPhone('')
+        setAddress('')
       }
-    } catch {}
+    } catch {
+      setName(user.login || '')
+    }
     setCoins(getCoinsFromStorage())
     const orders = getOrders().filter(o => o.email === user.login || o.login === user.login)
     const history = []
@@ -52,19 +64,46 @@ export default function ProfilePage() {
     setCoinHistory(history)
   }, [user])
 
+  const validate = () => {
+    const newErrors = {}
+    if (!name.trim()) newErrors.name = lang.nameRequired
+    if (!email.trim()) {
+      newErrors.email = lang.emailRequired
+    } else if (!email.includes('@') || !email.includes('.')) {
+      newErrors.email = lang.emailInvalid
+    }
+    if (phone) {
+      const digits = phone.replace(/\D/g, '')
+      if (digits.length < 10) newErrors.phone = lang.phoneInvalid
+    }
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSave = () => {
+    if (!validate()) return
+    const updated = { ...user, name: name.trim(), email: email.trim().toLowerCase(), phone, address: address.trim() }
+    localStorage.setItem('tenza_user', JSON.stringify(updated))
+    localStorage.setItem('tenza_user_email', updated.email)
+    try {
+      const raw = localStorage.getItem('tenza_users')
+      const users = JSON.parse(raw || '{}')
+      const key = 'tenza_user_' + (user.login || '').toLowerCase().trim()
+      if (users[key]) {
+        users[key] = { ...users[key], name: name.trim(), email: email.trim().toLowerCase(), phone, address: address.trim() }
+        localStorage.setItem('tenza_users', JSON.stringify(users))
+      }
+    } catch {}
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
   const handleLogout = () => {
     logout()
     localStorage.removeItem('tenza_user')
     localStorage.removeItem('tenza_user_email')
     window.dispatchEvent(new Event('login'))
     window.location.href = '/'
-  }
-
-  const handleSave = () => {
-    localStorage.setItem('tenza_user', JSON.stringify(userData))
-    localStorage.setItem('tenza_user_email', userData.email)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
   }
 
   const handleCopyCode = () => {
@@ -99,8 +138,8 @@ export default function ProfilePage() {
               <User size={36} className="text-[#ccff00]" />
             )}
           </div>
-          <h2 className="text-xl font-bold">{user?.login || userData.name || '—'}</h2>
-          <p className="text-gray-400 text-sm">{userData.email || '—'}</p>
+          <h2 className="text-xl font-bold">{name || user?.login || '—'}</h2>
+          <p className="text-gray-400 text-sm">{email || '—'}</p>
         </motion.div>
 
         {user && (
@@ -128,7 +167,6 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Coin History */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Clock size={14} className="text-gray-400" />
@@ -203,24 +241,38 @@ export default function ProfilePage() {
           <h3 className="text-[#ccff00] font-bold text-sm mb-4">{lang.personalInfo}</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-gray-400 text-xs block mb-1">{lang.name}</label>
-              <input value={userData.name} onChange={e => setUserData(d => ({ ...d, name: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-[#ccff00]/50" />
+              <label className="text-gray-400 text-xs block mb-1">{lang.name} *</label>
+              <input value={name} onChange={e => setName(e.target.value)}
+                placeholder={lang.namePlaceholder}
+                className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-[#ccff00]/50 transition-all ${errors.name ? 'border-red-500' : 'border-white/10'}`} />
+              {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="text-gray-400 text-xs block mb-1">{lang.email}</label>
-              <input type="email" value={userData.email} onChange={e => setUserData(d => ({ ...d, email: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-[#ccff00]/50" />
+              <label className="text-gray-400 text-xs block mb-1">{lang.email} *</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder={lang.emailPlaceholder}
+                className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-[#ccff00]/50 transition-all ${errors.email ? 'border-red-500' : 'border-white/10'}`} />
+              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
             </div>
             <div>
               <label className="text-gray-400 text-xs block mb-1">{lang.phone}</label>
-              <input type="tel" value={userData.phone || ''} onChange={e => setUserData(d => ({ ...d, phone: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-[#ccff00]/50" />
+              <input type="tel" value={phone}
+                onChange={e => {
+                  let val = e.target.value
+                  if (!val.startsWith('+')) val = '+' + val
+                  val = '+' + val.slice(1).replace(/[^\d\s\-\(\)]/g, '')
+                  setPhone(val)
+                }}
+                onKeyDown={e => { if (e.key === 'Backspace' && e.target.selectionStart <= 1) e.preventDefault() }}
+                placeholder={lang.phonePlaceholder}
+                className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-[#ccff00]/50 transition-all ${errors.phone ? 'border-red-500' : 'border-white/10'}`} />
+              {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
             </div>
             <div>
               <label className="text-gray-400 text-xs block mb-1">{lang.address}</label>
-              <input value={userData.address || ''} onChange={e => setUserData(d => ({ ...d, address: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-[#ccff00]/50" />
+              <input value={address} onChange={e => setAddress(e.target.value)}
+                placeholder={lang.addressPlaceholder}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-[#ccff00]/50" />
             </div>
           </div>
           <button onClick={handleSave}

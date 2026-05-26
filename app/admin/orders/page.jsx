@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Download, X, Eye, Check, AlertTriangle,
@@ -7,10 +7,11 @@ import {
   User, Mail, CreditCard, Truck, Calendar, DollarSign
 } from 'lucide-react'
 import {
-  getOrders, getPendingOrders, getStatusLabel, getStatusStyle,
-  getStatusIcon, getNextValidStatuses, getOrderStats,
-  updateOrderInStorage, getNotifMessage, itemName, STATUS_LABELS
+  getStatusLabel, getStatusStyle,
+  getStatusIcon, getNextValidStatuses,
+  getNotifMessage, itemName, STATUS_LABELS
 } from '@/utils/orders'
+import { subscribeOrders, updateOrder } from '@/lib/firestore'
 import { processOrderCoins, addNotification, getUserByEmail, COIN_USD_VALUE } from '@/utils/coins'
 import { useI18n } from '@/i18n'
 
@@ -133,6 +134,7 @@ export default function AdminOrdersPage() {
   const lang = L[locale] || L.uz
   const tabLabels = statusTabLabels[locale] || statusTabLabels.uz
   const [activeTab, setActiveTab] = useState('pending')
+  const [allOrders, setAllOrders] = useState([])
   const [orders, setOrders] = useState([])
   const [search, setSearch] = useState('')
   const [selectedOrder, setSelectedOrder] = useState(null)
@@ -143,15 +145,17 @@ export default function AdminOrdersPage() {
   const [note, setNote] = useState('')
   const [processingAction, setProcessingAction] = useState(false)
 
-  const loadOrders = () => {
-    const all = getOrders()
-    if (activeTab === 'pending') setOrders(getPendingOrders())
-    else if (activeTab === 'active') setOrders(all.filter(o => ['paid', 'processing', 'shipped', 'in_transit'].includes(o.status)))
-    else if (activeTab === 'completed') setOrders(all.filter(o => ['delivered', 'cancelled'].includes(o.status)))
-    else setOrders(all)
-  }
+  useEffect(() => {
+    const unsub = subscribeOrders(setAllOrders)
+    return () => unsub()
+  }, [])
 
-  useEffect(() => { loadOrders() }, [activeTab])
+  useEffect(() => {
+    if (activeTab === 'pending') setOrders(allOrders.filter(o => o.status === 'pending_verification'))
+    else if (activeTab === 'active') setOrders(allOrders.filter(o => ['paid', 'processing', 'shipped', 'in_transit'].includes(o.status)))
+    else if (activeTab === 'completed') setOrders(allOrders.filter(o => ['delivered', 'cancelled'].includes(o.status)))
+    else setOrders(allOrders)
+  }, [allOrders, activeTab])
 
   useEffect(() => {
     if (selectedOrder) {
@@ -173,24 +177,23 @@ export default function AdminOrdersPage() {
     return id.includes(q) || name.includes(q) || email.includes(q) || phone.includes(q)
   })
 
-  const handleConfirmPayment = (orderId) => {
+  const handleConfirmPayment = async (orderId) => {
     setProcessingAction(true)
-    const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-    const idx = orders.findIndex(o => (o.id || o.orderId) === orderId)
-    if (idx < 0) { setProcessingAction(false); return }
+    const order = allOrders.find(o => (o.id || o.orderId) === orderId)
+    if (!order) { setProcessingAction(false); return }
 
-    const order = orders[idx]
     const coinResult = processOrderCoins(order, 'CONFIRM')
 
-    order.status = 'paid'
-    order.paidAt = new Date().toISOString()
-    order.coinsDeducted = coinResult.coinsDeducted
-    order.coinsEarned = coinResult.coinsEarned
-    order.remainingPayment = coinResult.remainingPayment
-    if (!order.history) order.history = []
-    order.history.push({ status: 'paid', time: new Date().toISOString(), note: 'Payment confirmed by admin' })
+    const historyEntry = { status: 'paid', time: new Date().toISOString(), note: 'Payment confirmed by admin' }
 
-    localStorage.setItem('tenza_orders', JSON.stringify(orders))
+    await updateOrder(order.id, {
+      status: 'paid',
+      paidAt: new Date().toISOString(),
+      coinsDeducted: coinResult.coinsDeducted,
+      coinsEarned: coinResult.coinsEarned,
+      remainingPayment: coinResult.remainingPayment,
+      history: [...(order.history || []), historyEntry],
+    })
 
     const notif = getNotifMessage('paid', order, locale)
     if (notif) {
@@ -205,24 +208,22 @@ export default function AdminOrdersPage() {
     }
 
     setProcessingAction(false)
-    loadOrders()
     setSelectedOrder(null)
   }
 
-  const handleCancelPayment = (orderId) => {
+  const handleCancelPayment = async (orderId) => {
     setProcessingAction(true)
-    const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-    const idx = orders.findIndex(o => (o.id || o.orderId) === orderId)
-    if (idx < 0) { setProcessingAction(false); return }
+    const order = allOrders.find(o => (o.id || o.orderId) === orderId)
+    if (!order) { setProcessingAction(false); return }
 
-    const order = orders[idx]
     processOrderCoins(order, 'CANCEL')
 
-    order.status = 'cancelled'
-    if (!order.history) order.history = []
-    order.history.push({ status: 'cancelled', time: new Date().toISOString(), note: 'Payment rejected by admin' })
+    const historyEntry = { status: 'cancelled', time: new Date().toISOString(), note: 'Payment rejected by admin' }
 
-    localStorage.setItem('tenza_orders', JSON.stringify(orders))
+    await updateOrder(order.id, {
+      status: 'cancelled',
+      history: [...(order.history || []), historyEntry],
+    })
 
     const notif = getNotifMessage('cancelled', order, locale)
     if (notif) {
@@ -235,47 +236,40 @@ export default function AdminOrdersPage() {
     }
 
     setProcessingAction(false)
-    loadOrders()
     setSelectedOrder(null)
   }
 
-  const handleStatusChange = () => {
+  const handleStatusChange = async () => {
     if (newStatus === selectedOrder.status || !newStatus) return
 
-    const orderId = selectedOrder.id || selectedOrder.orderId
-    const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-    const idx = orders.findIndex(o => (o.id || o.orderId) === orderId)
-    if (idx < 0) return
-
-    const order = orders[idx]
-    const oldStatus = order.status
-    order.status = newStatus
-    if (!order.history) order.history = []
-    order.history.push({ status: newStatus, time: new Date().toISOString(), note: note || '' })
-
-    if (trackCode || trackCompany || estimatedDate) {
-      order.tracking = { code: trackCode, company: trackCompany, estimatedDelivery: estimatedDate }
+    const historyEntry = { status: newStatus, time: new Date().toISOString(), note: note || '' }
+    const updates = {
+      status: newStatus,
+      history: [...(selectedOrder.history || []), historyEntry],
     }
 
-    localStorage.setItem('tenza_orders', JSON.stringify(orders))
+    if (trackCode || trackCompany || estimatedDate) {
+      updates.tracking = { code: trackCode, company: trackCompany, estimatedDelivery: estimatedDate }
+    }
 
-    const notif = getNotifMessage(newStatus, order, locale)
+    await updateOrder(selectedOrder.id, updates)
+
+    const notif = getNotifMessage(newStatus, selectedOrder, locale)
     if (notif) {
-      addNotification(order.email, {
+      addNotification(selectedOrder.email, {
         type: newStatus,
         title: notif.title,
         message: notif.message,
-        orderId: orderId,
-        tracking: order.tracking,
+        orderId: selectedOrder.id || selectedOrder.orderId,
+        tracking: updates.tracking,
       })
     }
 
-    loadOrders()
     setSelectedOrder(null)
   }
 
   const handleExportCSV = () => {
-    const all = getOrders()
+    const all = allOrders
     const headers = ['ID', 'Customer', 'Email', 'Phone', 'City', 'Total', 'Coins Used', 'Coins Earned', 'Status', 'Date']
     const rows = all.map(o => [
       o.id || o.orderId, o.customerName || o.fullName, o.email, o.phone,
@@ -290,7 +284,17 @@ export default function AdminOrdersPage() {
     link.click()
   }
 
-  const stats = getOrderStats()
+  const stats = useMemo(() => ({
+    total: allOrders.length,
+    pending: allOrders.filter(o => o.status === 'pending_verification').length,
+    processing: allOrders.filter(o => o.status === 'processing').length,
+    shipped: allOrders.filter(o => o.status === 'shipped' || o.status === 'in_transit').length,
+    delivered: allOrders.filter(o => o.status === 'delivered').length,
+    cancelled: allOrders.filter(o => o.status === 'cancelled').length,
+    paid: allOrders.filter(o => o.status === 'paid').length,
+    revenue: allOrders.reduce((s, o) => s + (o.status === 'delivered' ? (o.total || o.totalPrice || 0) : 0), 0),
+    totalRevenue: allOrders.reduce((s, o) => s + (o.total || o.totalPrice || 0), 0),
+  }), [allOrders])
   const nextStatuses = selectedOrder ? getNextValidStatuses(selectedOrder.status) : []
 
   return (

@@ -9,17 +9,17 @@ import { useI18n } from '@/i18n'
 import Header from '../components/Header'
 
 const L = {
-  uz: { title: 'Kirish', loginLabel: 'Login yoki Email', loginPlaceholder: 'user123 yoki user@mail.com', passwordLabel: 'Parol', submit: 'Kirish', noAccount: "Hisobingiz yo'qmi?", registerLink: "Ro'yxatdan o'tish", back: 'Orqaga', fillAll: "Barcha maydonlarni to'ldiring", wrongPassword: 'Parol notog\'ri' },
-  ru: { title: 'Вход', loginLabel: 'Логин или Email', loginPlaceholder: 'user123 или user@mail.com', passwordLabel: 'Пароль', submit: 'Войти', noAccount: 'Нет аккаунта?', registerLink: 'Регистрация', back: 'Назад', fillAll: 'Заполните все поля', wrongPassword: 'Неверный пароль' },
-  en: { title: 'Login', loginLabel: 'Login or Email', loginPlaceholder: 'user123 or user@mail.com', passwordLabel: 'Password', submit: 'Login', noAccount: "Don't have an account?", registerLink: 'Register', back: 'Back', fillAll: 'Fill all fields', wrongPassword: 'Wrong password' },
-  fi: { title: 'Kirjaudu', loginLabel: 'Käyttäjätunnus tai sähköposti', loginPlaceholder: 'user123 tai user@mail.com', passwordLabel: 'Salasana', submit: 'Kirjaudu', noAccount: 'Ei tiliä?', registerLink: 'Rekisteröidy', back: 'Takaisin', fillAll: 'Täytä kaikki kentät', wrongPassword: 'Väärä salasana' },
-  sv: { title: 'Logga in', loginLabel: 'Inloggning eller e-post', loginPlaceholder: 'user123 eller user@mail.com', passwordLabel: 'Lösenord', submit: 'Logga in', noAccount: 'Inget konto?', registerLink: 'Registrera', back: 'Tillbaka', fillAll: 'Fyll i alla fält', wrongPassword: 'Fel lösenord' },
+  uz: { title: 'Kirish', loginLabel: 'Login yoki Email', loginPlaceholder: 'user123 yoki user@mail.com', passwordLabel: 'Parol', submit: 'Kirish', noAccount: "Hisobingiz yo'qmi?", registerLink: "Ro'yxatdan o'tish", back: 'Orqaga', fillAll: "Barcha maydonlarni to'ldiring", wrongPassword: 'Parol noto\'g\'ri. Qayta urinib ko\'ring.', userNotFound: 'Bunday foydalanuvchi topilmadi. Avval ro\'yxatdan o\'ting.' },
+  ru: { title: 'Вход', loginLabel: 'Логин или Email', loginPlaceholder: 'user123 или user@mail.com', passwordLabel: 'Пароль', submit: 'Войти', noAccount: 'Нет аккаунта?', registerLink: 'Регистрация', back: 'Назад', fillAll: 'Заполните все поля', wrongPassword: 'Неверный пароль. Попробуйте снова.', userNotFound: 'Пользователь не найден. Сначала зарегистрируйтесь.' },
+  en: { title: 'Login', loginLabel: 'Login or Email', loginPlaceholder: 'user123 or user@mail.com', passwordLabel: 'Password', submit: 'Login', noAccount: "Don't have an account?", registerLink: 'Register', back: 'Back', fillAll: 'Fill all fields', wrongPassword: 'Wrong password. Try again.', userNotFound: 'User not found. Please register first.' },
+  fi: { title: 'Kirjaudu', loginLabel: 'Käyttäjätunnus tai sähköposti', loginPlaceholder: 'user123 tai user@mail.com', passwordLabel: 'Salasana', submit: 'Kirjaudu', noAccount: 'Ei tiliä?', registerLink: 'Rekisteröidy', back: 'Takaisin', fillAll: 'Täytä kaikki kentät', wrongPassword: 'Väärä salasana. Yritä uudelleen.', userNotFound: 'Käyttäjää ei löydy. Rekisteröidy ensin.' },
+  sv: { title: 'Logga in', loginLabel: 'Inloggning eller e-post', loginPlaceholder: 'user123 eller user@mail.com', passwordLabel: 'Lösenord', submit: 'Logga in', noAccount: 'Inget konto?', registerLink: 'Registrera', back: 'Tillbaka', fillAll: 'Fyll i alla fält', wrongPassword: 'Fel lösenord. Försök igen.', userNotFound: 'Användaren hittades inte. Registrera dig först.' },
 }
 
 export default function LoginPage() {
   const router = useRouter()
   const { locale } = useI18n()
-  const { login, user, allUsers } = useAuth()
+  const { login, user } = useAuth()
   const lang = L[locale] || L.uz
 
   const [loginValue, setLoginValue] = useState('')
@@ -33,31 +33,64 @@ export default function LoginPage() {
     return null
   }
 
-  const handleSubmit = (e) => {
+  function findLocalUser(value) {
+    try {
+      const raw = localStorage.getItem('tenza_users')
+      console.log('[LOGIN] tenza_users raw:', raw)
+      const users = JSON.parse(raw || '{}')
+      console.log('[LOGIN] parsed users:', users)
+      console.log('[LOGIN] user keys:', Object.keys(users))
+      const key = 'tenza_user_' + value.toLowerCase().trim()
+      console.log('[LOGIN] searching for key:', key)
+      if (users[key]) {
+        console.log('[LOGIN] FOUND by key:', users[key])
+        return users[key]
+      }
+      const byEmail = Object.values(users).find(u => u.email?.toLowerCase() === value.toLowerCase().trim())
+      console.log('[LOGIN] search by email result:', byEmail)
+      return byEmail
+    } catch (e) {
+      console.log('[LOGIN] error:', e)
+      return null
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (!loginValue || !password) {
+    const val = loginValue.trim()
+    const pass = password
+
+    if (!val || !pass) {
       setError(lang.fillAll)
       return
     }
 
     setLoading(true)
 
-    const result = login(loginValue, password)
+    console.log('[LOGIN] attempting login for:', val)
+    const found = findLocalUser(val)
+    console.log('[LOGIN] found user:', found)
 
-    if (result.success) {
-      localStorage.setItem('tenza_user_email', loginValue)
-      router.push('/')
-    } else {
-      const emailLoginKey = 'tenza_user_' + loginValue.toLowerCase().trim()
-      if (allUsers[emailLoginKey]) {
-        setError(lang.wrongPassword)
-      } else {
-        setError(result.error)
-      }
+    if (!found) {
+      console.log('[LOGIN] USER NOT FOUND')
+      setError(lang.userNotFound)
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    if (found.password !== pass) {
+      console.log('[LOGIN] WRONG PASSWORD')
+      setError(lang.wrongPassword)
+      setLoading(false)
+      return
+    }
+
+    console.log('[LOGIN] LOGIN SUCCESS for:', found.login)
+    localStorage.setItem('tenza_current_user', JSON.stringify(found))
+    localStorage.setItem('tenza_user_email', found.email || val)
+    window.location.href = '/'
   }
 
   return (

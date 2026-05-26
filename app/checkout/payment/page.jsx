@@ -8,6 +8,7 @@ import { sendTelegramMessage } from '@/utils/telegram'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/context/AuthContext'
 import { useLoyalty } from '@/hooks/useLoyalty'
+import { addOrder } from '@/lib/firestore'
 import Header from '../../components/Header'
 
 export default function SberPaymentPage() {
@@ -52,11 +53,11 @@ export default function SberPaymentPage() {
         status: 'pending_verification',
         paymentMethod: 'sberbank_qr',
         login: user?.login,
+        createdAt: new Date().toISOString(),
+        history: [{ status: 'pending_verification', time: new Date().toISOString() }],
       }
 
-      const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-      orders.push(orderWithId)
-      localStorage.setItem('tenza_orders', JSON.stringify(orders))
+      await addOrder(orderWithId)
       localStorage.removeItem('tenza_order')
       clearCart()
 

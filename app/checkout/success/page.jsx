@@ -1,22 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Clock, Package, Truck, ArrowRight, Coins } from 'lucide-react'
+import { Clock, Package, Truck, ArrowRight, Coins } from 'lucide-react'
 import Link from 'next/link'
 import { useI18n } from '@/i18n'
 import Header from '../../components/Header'
 
 export default function SuccessPage() {
   const { t, locale } = useI18n()
-  const [needsVerification, setNeedsVerification] = useState(false)
-  const [coinsEarned, setCoinsEarned] = useState(0)
-
-  useEffect(() => {
-    const orders = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
-    const last = orders[orders.length - 1]
-    if (last?.status === 'pending_verification') setNeedsVerification(true)
-    if (last?.coinsEarned > 0) setCoinsEarned(last.coinsEarned)
-  }, [])
 
   return (
     <div className="min-h-screen bg-[#050505]">
@@ -25,15 +15,13 @@ export default function SuccessPage() {
         <div className="max-w-lg mx-auto px-4 text-center">
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
             className="w-24 h-24 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center mx-auto mb-6">
-            {needsVerification ? <Clock size={40} className="text-yellow-400" /> : <Check size={40} className="text-green-400" />}
+            <Clock size={40} className="text-yellow-400" />
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
             <h1 className="text-3xl font-black text-white mb-2">{t('thank_you')}</h1>
             <p className="text-gray-400 mb-8">
-              {needsVerification
-                ? "Buyurtmangiz qabul qilindi. Admin to'lovni tasdiqlashi bilan jo'natiladi."
-                : t('order_confirmed')}
+              {"Buyurtmangiz qabul qilindi. Admin to'lovni tasdiqlashi bilan jo'natiladi."}
             </p>
           </motion.div>
 
@@ -56,16 +44,13 @@ export default function SuccessPage() {
             </div>
           </motion.div>
 
-          {coinsEarned > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-              className="bg-gradient-to-r from-[#ccff00]/10 to-green-500/10 border-2 border-[#ccff00]/30 rounded-2xl p-6 text-center mb-8">
-              <Coins size={40} className="text-yellow-400 mx-auto mb-2" />
-              <p className="text-[#ccff00] font-black text-2xl">+{coinsEarned} coin</p>
-              <p className="text-gray-400 text-sm mt-2">
-                {t('coins_pending_approval') || "Admin to'lovni tasdiqlagandan so'ng hisobingizga qo'shiladi"}
-              </p>
-            </motion.div>
-          )}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+            className="bg-gradient-to-r from-[#ccff00]/10 to-green-500/10 border-2 border-[#ccff00]/30 rounded-2xl p-6 text-center mb-8">
+            <Coins size={40} className="text-yellow-400 mx-auto mb-2" />
+            <p className="text-gray-400 text-sm mt-2">
+              {t('coins_pending_approval') || "Admin to'lovni tasdiqlagandan so'ng hisobingizga qo'shiladi"}
+            </p>
+          </motion.div>
 
           <Link href="/" className="inline-flex items-center gap-2 px-8 py-4 bg-[#ccff00] text-black font-bold rounded-full hover:bg-white transition-all">
             {t('back_to_shop')} <ArrowRight size={20} />

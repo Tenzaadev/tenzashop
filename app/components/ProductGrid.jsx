@@ -1,19 +1,28 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import ProductCard from './ProductCard'
-import { products } from '@/data/products'
+import { getProducts, getProductsByCategory } from '@/data/productStore'
 import { useI18n } from '@/i18n'
 import { X } from 'lucide-react'
 
 export default function ProductGrid({ category = null }) {
   const { t } = useI18n()
   const router = useRouter()
-  
-  const filteredProducts = category && category !== 'all'
-    ? category === 'limited'
-      ? products.filter(p => p.isLimited || p.category === 'limited')
-      : products.filter(p => p.category === category)
-    : products
+  const [filteredProducts, setFilteredProducts] = useState([])
+
+  useEffect(() => {
+    const load = () => {
+      if (category && category !== 'all') {
+        setFilteredProducts(getProductsByCategory(category))
+      } else {
+        setFilteredProducts(getProducts())
+      }
+    }
+    load()
+    window.addEventListener('products-updated', load)
+    return () => window.removeEventListener('products-updated', load)
+  }, [category])
 
   const handleClearFilter = () => {
     router.push('/')

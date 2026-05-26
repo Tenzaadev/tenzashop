@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, BellOff, CheckCircle, XCircle, Trash2, Reply, Send, Loader2, MessageSquare, ExternalLink, Coins, Package } from 'lucide-react'
-import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '@/data/notifications'
+import { subscribeNotifications, markNotificationRead } from '@/lib/firestore'
+import { deleteDoc, doc, getDocs, collection, query, where } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useI18n } from '@/i18n'
 
 
@@ -124,35 +126,24 @@ export default function NotificationsPage() {
     }
     if (!email) email = 'guest@tenza.shop'
     setUserEmail(email)
-    setNotifs(getNotifications(email))
-    const handleUpdate = () => setNotifs(getNotifications(email))
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        setNotifs(getNotifications(email))
-      }
-    }
-    window.addEventListener('notification-added', handleUpdate)
-    document.addEventListener('visibilitychange', handleVisibility)
-    return () => {
-      window.removeEventListener('notification-added', handleUpdate)
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
+    const unsub = subscribeNotifications((data) => {
+      setNotifs(data.filter(n => n.email === email))
+    })
+    return () => unsub()
   }, [])
 
-  const handleMarkAllRead = () => {
-    markAllAsRead(userEmail)
-    setNotifs(getNotifications(userEmail))
+  const handleMarkAllRead = async () => {
+    const q = query(collection(db, 'notifications'), where('email', '==', userEmail), where('read', '==', false))
+    const snapshot = await getDocs(q)
+    await Promise.all(snapshot.docs.map(d => markNotificationRead(d.id)))
   }
 
-  const handleClick = (notifId) => {
-    markAsRead(userEmail, notifId)
+  const handleClick = async (notifId) => {
+    await markNotificationRead(notifId)
     setExpanded(expanded === notifId ? null : notifId)
-    setNotifs(getNotifications(userEmail))
   }
 
   const goToSupport = (notif) => {
-    markAsRead(userEmail, notif.id)
-    setNotifs(getNotifications(userEmail))
     localStorage.setItem('tenza_user_email', userEmail)
     if (notif.type === 'support_reply' && notif.supportMessageId) {
       router.push('/support?tab=chat&msg=' + notif.supportMessageId)
@@ -161,10 +152,9 @@ export default function NotificationsPage() {
     }
   }
 
-  const handleDelete = (e, notifId) => {
+  const handleDelete = async (e, notifId) => {
     e.stopPropagation()
-    deleteNotification(userEmail, notifId)
-    setNotifs(getNotifications(userEmail))
+    await deleteDoc(doc(db, 'notifications', notifId))
     setExpanded(null)
   }
 

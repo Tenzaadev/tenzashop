@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Send, CheckCircle, Bell, Mail, Clock } from 'lucide-react'
-import { addNotification } from '@/data/notifications'
+import { subscribeNotifications, addNotification, getAllUsers } from '@/lib/firestore'
 import { useI18n } from '@/i18n'
 
 const L = {
@@ -16,6 +16,7 @@ const L = {
     success: "Bildirishnoma yuborildi!", sentHistory: "Yuborilgan bildirishnomalar",
     noHistory: "Hali bildirishnomalar yuborilmagan",
     date: "Sana", email: "Email", type: "Tur", status: "Holat", sent: "Yuborilgan",
+    emailNotFound: "Email topilmadi", userNotFound: "Foydalanuvchi topilmadi",
   },
   ru: {
     pageTitle: "Уведомления", subtitle: "Отправка уведомлений пользователям",
@@ -27,6 +28,7 @@ const L = {
     success: "Уведомление отправлено!", sentHistory: "Отправленные уведомления",
     noHistory: "Уведомления ещё не отправлялись",
     date: "Дата", email: "Email", type: "Тип", status: "Статус", sent: "Отправлено",
+    emailNotFound: "Email не найден", userNotFound: "Пользователь не найден",
   },
   en: {
     pageTitle: "Notifications", subtitle: "Send notifications to users",
@@ -38,6 +40,7 @@ const L = {
     success: "Notification sent!", sentHistory: "Sent notifications",
     noHistory: "No notifications sent yet",
     date: "Date", email: "Email", type: "Type", status: "Status", sent: "Sent",
+    emailNotFound: "Email not found", userNotFound: "User not found",
   },
   fi: {
     pageTitle: "Ilmoitukset", subtitle: "Lähetä ilmoituksia käyttäjille",
@@ -49,6 +52,7 @@ const L = {
     success: "Ilmoitus lähetetty!", sentHistory: "Lähetetyt ilmoitukset",
     noHistory: "Ilmoituksia ei ole vielä lähetetty",
     date: "Päiväys", email: "Sähköposti", type: "Tyyppi", status: "Tila", sent: "Lähetetty",
+    emailNotFound: "Sähköpostia ei löydy", userNotFound: "Käyttäjää ei löydy",
   },
   sv: {
     pageTitle: "Notifieringar", subtitle: "Skicka notifieringar till användare",
@@ -60,10 +64,9 @@ const L = {
     success: "Notifiering skickad!", sentHistory: "Skickade notifieringar",
     noHistory: "Inga notifieringar skickade än",
     date: "Datum", email: "E-post", type: "Typ", status: "Status", sent: "Skickad",
+    emailNotFound: "E-post hittades inte", userNotFound: "Användaren hittades inte",
   },
 }
-
-const ALL_NOTIFS_KEY = 'tenza_sent_notifications'
 
 export default function AdminNotificationsPage() {
   const { locale } = useI18n()
@@ -76,65 +79,41 @@ export default function AdminNotificationsPage() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [history, setHistory] = useState([])
+  const [searchError, setSearchError] = useState('')
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(ALL_NOTIFS_KEY) || '[]')
-      setHistory(saved)
-    } catch {}
-    // Mark all user notifications as read when admin visits this page
-    try {
-      const allNotifs = JSON.parse(localStorage.getItem('tenza_notifications') || '{}')
-      let changed = false
-      Object.keys(allNotifs).forEach(email => {
-        allNotifs[email] = allNotifs[email].map(n => {
-          if (!n.read) { changed = true; return { ...n, read: true } }
-          return n
-        })
-      })
-      if (changed) {
-        localStorage.setItem('tenza_notifications', JSON.stringify(allNotifs))
-        window.dispatchEvent(new CustomEvent('notification-added'))
-      }
-    } catch {}
+    const unsub = subscribeNotifications(setHistory)
+    return () => unsub()
   }, [])
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchValue.trim()) return
-    const users = JSON.parse(localStorage.getItem('tenza_users') || '[]')
+    const users = await getAllUsers()
+    const userList = Object.values(users)
     let user = null
     if (searchType === 'email') {
-      user = users.find(u => u.email?.toLowerCase() === searchValue.toLowerCase())
+      user = userList.find(u => u.email?.toLowerCase() === searchValue.toLowerCase())
     } else {
-      user = users.find(u => u.nickname?.toLowerCase() === searchValue.toLowerCase())
+      user = userList.find(u => u.nickname?.toLowerCase() === searchValue.toLowerCase())
     }
     if (user) {
       setFoundUser(user)
+      setSearchError('')
     } else {
       setFoundUser(null)
-      alert(searchType === 'email' ? 'Email topilmadi' : 'Foydalanuvchi topilmadi')
+      setSearchError(searchType === 'email' ? lang.emailNotFound : lang.userNotFound)
     }
   }
 
   const handleSend = async () => {
     if (!foundUser || !message.trim()) return
     setSending(true)
-    await new Promise(r => setTimeout(r, 500))
-    addNotification(foundUser.email, {
+    await addNotification({
+      email: foundUser.email,
       type: notifType,
       title: lang.typeOptions[notifType] || notifType,
       message: message.trim(),
     })
-    const entry = {
-      id: Date.now().toString(36),
-      email: foundUser.email,
-      title: lang.typeOptions[notifType] || notifType,
-      type: notifType,
-      createdAt: new Date().toISOString(),
-    }
-    const updated = [entry, ...history]
-    setHistory(updated)
-    localStorage.setItem(ALL_NOTIFS_KEY, JSON.stringify(updated))
     setSending(false)
     setSent(true)
     setMessage('')
@@ -167,7 +146,7 @@ export default function AdminNotificationsPage() {
           {/* Search type toggle */}
           <div className="flex bg-white/5 rounded-xl p-1 gap-1">
             <button
-              onClick={() => { setSearchType('email'); setFoundUser(null); setSearchValue('') }}
+              onClick={() => { setSearchType('email'); setFoundUser(null); setSearchValue(''); setSearchError('') }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                 searchType === 'email' ? 'bg-[#ccff00] text-black' : 'text-gray-400'
               }`}
@@ -175,7 +154,7 @@ export default function AdminNotificationsPage() {
               Email orqali
             </button>
             <button
-              onClick={() => { setSearchType('nickname'); setFoundUser(null); setSearchValue('') }}
+              onClick={() => { setSearchType('nickname'); setFoundUser(null); setSearchValue(''); setSearchError('') }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                 searchType === 'nickname' ? 'bg-[#ccff00] text-black' : 'text-gray-400'
               }`}
@@ -188,7 +167,7 @@ export default function AdminNotificationsPage() {
           <div className="flex gap-2">
             <input
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={(e) => { setSearchValue(e.target.value); setSearchError('') }}
               placeholder={searchType === 'email' ? 'user@email.com' : 'ali_shop'}
               className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-[#ccff00]/50"
               onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
@@ -200,6 +179,12 @@ export default function AdminNotificationsPage() {
               Qidirish
             </button>
           </div>
+
+          {searchError && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm">
+              {searchError}
+            </div>
+          )}
 
           {/* Found user info */}
           {foundUser && (

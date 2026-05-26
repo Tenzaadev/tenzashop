@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Clock, RotateCcw } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useCart } from '@/hooks/useCart'
-import { getOrders } from '@/data/orders'
+import { subscribeOrders } from '@/lib/firestore'
 import { itemName } from '@/utils/orders'
 
 const statusIcons = {
@@ -37,24 +37,31 @@ export default function OrdersPage() {
   const sl = statusLabels[locale] || statusLabels.uz
   const [orders, setOrders] = useState([])
 
-  const loadUserOrders = () => {
+  useEffect(() => {
     try {
       const raw = localStorage.getItem('tenza_current_user')
-      if (!raw) { setOrders([]); return }
-      const user = JSON.parse(raw)
-      const login = user?.login
-      if (!login) { setOrders([]); return }
-      const all = getOrders()
-      setOrders(all.filter(o => o.login === login || o.email === login).reverse())
-    } catch { setOrders([]) }
-  }
+      if (raw) {
+        const user = JSON.parse(raw)
+        const login = user?.login
+        if (login) {
+          const fallback = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
+          setOrders(fallback.filter(o => o.login === login || o.email === login))
+        }
+      }
+    } catch {}
 
-  useEffect(() => {
-    loadUserOrders()
-    window.addEventListener('storage', loadUserOrders)
-    window.addEventListener('login', loadUserOrders)
-    const interval = setInterval(loadUserOrders, 5000)
-    return () => { clearInterval(interval); window.removeEventListener('storage', loadUserOrders); window.removeEventListener('login', loadUserOrders) }
+    const unsub = subscribeOrders((allOrders) => {
+      try {
+        const raw = localStorage.getItem('tenza_current_user')
+        if (!raw) { setOrders([]); return }
+        const user = JSON.parse(raw)
+        const login = user?.login
+        if (!login) { setOrders([]); return }
+        setOrders(allOrders.filter(o => o.login === login || o.email === login))
+      } catch { setOrders([]) }
+    })
+
+    return () => unsub()
   }, [])
 
   return (

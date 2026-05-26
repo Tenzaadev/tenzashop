@@ -9,7 +9,7 @@ import { useI18n } from '@/i18n'
 import { useCart } from '@/hooks/useCart'
 import { useWishlist } from '@/hooks/useWishlist'
 import { useAuth } from '@/context/AuthContext'
-import { products } from '@/data/products'
+import { getProducts } from '@/data/productStore'
 import { getUnreadCount } from '@/data/notifications'
 import LanguageSwitcher from './LanguageSwitcher'
 import HamburgerMenu from './HamburgerMenu'
@@ -45,15 +45,15 @@ export default function Header() {
     }
   }, [])
 
+  const productName = (product) => (typeof product.name === 'string' ? product.name : product.name?.[locale] || product.name?.en || '')
+
   const filteredProducts = searchQuery.trim()
-    ? products.filter((p) => {
+    ? getProducts().filter((p) => {
       const q = searchQuery.toLowerCase()
       if (typeof p.name === 'string') return p.name.toLowerCase().includes(q)
       return Object.values(p.name || {}).some((n) => String(n).toLowerCase().includes(q))
     }).slice(0, 6)
     : []
-
-  const productName = (product) => (typeof product.name === 'string' ? product.name : product.name?.[locale] || product.name?.en || '')
 
   return (
     <>
@@ -65,7 +65,6 @@ export default function Header() {
             </Link>
             <nav className="hidden md:flex items-center gap-4">
               <Link href="/" className="text-sm text-gray-300 hover:text-white transition-colors">{t('home')}</Link>
-              <Link href="/about" className="text-sm text-gray-300 hover:text-white transition-colors">{t('about')}</Link>
             </nav>
           </div>
 
