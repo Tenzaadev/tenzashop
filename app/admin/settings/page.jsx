@@ -38,7 +38,6 @@ const L = {
 
 export default function AdminSettingsPage() {
   const [locale, setLocale] = useState('uz')
-  const [authed, setAuthed] = useState(false)
   const [email, setEmail] = useState('')
   const [link, setLink] = useState('')
   const [copied, setCopied] = useState(false)
@@ -52,10 +51,6 @@ export default function AdminSettingsPage() {
     const h = (e) => setLocale(e.detail || 'uz')
     window.addEventListener('language-changed', h)
     return () => window.removeEventListener('language-changed', h)
-  }, [])
-
-  useEffect(() => {
-    if (localStorage.getItem('tenza_admin_auth') === 'true') setAuthed(true)
   }, [])
 
   const handleGenerate = () => {
@@ -73,20 +68,6 @@ export default function AdminSettingsPage() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch { }
-  }
-
-  if (!authed) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
-        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 max-w-sm w-full">
-          <h1 className="text-2xl font-black text-white mb-2">Admin</h1>
-          <p className="text-gray-400 text-sm mb-6">Parolni kiriting</p>
-          <input type="password" placeholder="Parol"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none mb-4" />
-          <p className="text-gray-500 text-xs text-center">Tizimga kirish uchun admin panelidan foydalaning</p>
-        </div>
-      </div>
-    )
   }
 
   return (

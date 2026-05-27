@@ -1,6 +1,6 @@
 'use client'
 
-const SUPPORT_KEY = 'tenza_support_messages'
+const SUPPORT_KEY = 'tenza_support'
 
 export function saveSupportMessage(data) {
   const messages = getSupportMessages()
@@ -21,6 +21,7 @@ export function saveSupportMessage(data) {
   localStorage.setItem(SUPPORT_KEY, JSON.stringify(messages))
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('support-message-updated'))
+    window.dispatchEvent(new CustomEvent('support-updated'))
   }
   return newMsg
 }
@@ -55,6 +56,7 @@ export function addAdminReply(messageId, replyText) {
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('support-message-updated'))
+      window.dispatchEvent(new CustomEvent('support-updated'))
     }
     return messages[index]
   }
@@ -78,6 +80,7 @@ export function addCustomerReply(messageId, replyText) {
     localStorage.setItem(SUPPORT_KEY, JSON.stringify(messages))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('support-message-updated'))
+      window.dispatchEvent(new CustomEvent('support-updated'))
     }
     return messages[index]
   }
@@ -106,6 +109,7 @@ export function markAsAdminViewed(messageId) {
     localStorage.setItem(SUPPORT_KEY, JSON.stringify(messages))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('support-message-updated'))
+      window.dispatchEvent(new CustomEvent('support-updated'))
     }
   }
 }

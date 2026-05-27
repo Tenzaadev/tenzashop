@@ -18,8 +18,13 @@ function lsSet(key, val) {
 
 function subscribeTo(lsKey, eventName, transform, callback) {
   if (typeof window !== 'undefined') {
-    const data = lsGet(lsKey)
-    callback(data ? (transform ? transform(data) : data) : [])
+    const fire = () => {
+      const data = lsGet(lsKey)
+      callback(data ? (transform ? transform(data) : data) : [])
+    }
+    fire()
+    window.addEventListener(eventName, fire)
+    return () => window.removeEventListener(eventName, fire)
   }
   return () => {}
 }
@@ -258,7 +263,9 @@ export async function addReview(review) {
 /*  NOTIFICATIONS                                                      */
 /* ------------------------------------------------------------------ */
 export function subscribeNotifications(callback) {
-  return subscribeTo(LS_NOTIFICATIONS, 'notifications-updated', flattenNotifs, callback)
+  const unsub1 = subscribeTo(LS_NOTIFICATIONS, 'notifications-updated', flattenNotifs, callback)
+  const unsub2 = subscribeTo(LS_NOTIFICATIONS, 'notification-added', flattenNotifs, callback)
+  return () => { unsub1(); unsub2() }
 }
 
 export async function getAllNotifications() {
@@ -296,7 +303,9 @@ export async function markNotificationRead(id) {
 /*  SUPPORT MESSAGES                                                   */
 /* ------------------------------------------------------------------ */
 export function subscribeSupportMessages(callback) {
-  return subscribeTo(LS_SUPPORT, 'support-updated', null, callback)
+  const unsub1 = subscribeTo(LS_SUPPORT, 'support-updated', null, callback)
+  const unsub2 = subscribeTo(LS_SUPPORT, 'support-message-updated', null, callback)
+  return () => { unsub1(); unsub2() }
 }
 
 export async function getAllSupportMessages() {

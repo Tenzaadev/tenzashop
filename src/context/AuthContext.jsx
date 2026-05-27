@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useContext, useState, useEffect } from 'react'
-import { setUser, updateUser, getUserDoc, subscribeAllUsers, isLoginTaken, findUserByReferralCode, getUserStats, generateReferralCode, generateLoginKey } from '@/lib/firestore'
+import { setUser as setUserDoc, updateUser, getUserDoc, subscribeAllUsers, isLoginTaken, findUserByReferralCode, getUserStats, generateReferralCode, generateLoginKey } from '@/lib/firestore'
 
 export const AuthContext = createContext(null)
 
@@ -92,12 +92,13 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      await setUser(key, newUser)
+      await setUserDoc(key, newUser)
     } catch {}
     const local = loadLocalUsers()
     local[key] = newUser
     saveLocalUsers(local)
 
+    setAllUsers(prev => ({ ...prev, [key]: newUser }))
     setUser(newUser)
     localStorage.setItem('tenza_current_user', JSON.stringify(newUser))
     return { success: true, user: { ...newUser, key } }

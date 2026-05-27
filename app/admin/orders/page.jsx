@@ -186,7 +186,7 @@ export default function AdminOrdersPage() {
 
     const historyEntry = { status: 'paid', time: new Date().toISOString(), note: 'Payment confirmed by admin' }
 
-    await updateOrder(order.id, {
+    await updateOrder(order.id || order.orderId, {
       status: 'paid',
       paidAt: new Date().toISOString(),
       coinsDeducted: coinResult.coinsDeducted,
@@ -220,7 +220,7 @@ export default function AdminOrdersPage() {
 
     const historyEntry = { status: 'cancelled', time: new Date().toISOString(), note: 'Payment rejected by admin' }
 
-    await updateOrder(order.id, {
+    await updateOrder(order.id || order.orderId, {
       status: 'cancelled',
       history: [...(order.history || []), historyEntry],
     })
@@ -252,7 +252,7 @@ export default function AdminOrdersPage() {
       updates.tracking = { code: trackCode, company: trackCompany, estimatedDelivery: estimatedDate }
     }
 
-    await updateOrder(selectedOrder.id, updates)
+    await updateOrder(selectedOrder.id || selectedOrder.orderId, updates)
 
     const notif = getNotifMessage(newStatus, selectedOrder, locale)
     if (notif) {

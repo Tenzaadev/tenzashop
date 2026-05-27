@@ -115,14 +115,7 @@ export default function Hero() {
           >
             {t('view_collection')}
           </motion.a>
-          <motion.a
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            href="#categories"
-            className="px-8 py-4 border-2 border-white/20 text-white font-bold rounded-full text-lg hover:border-[#ccff00] hover:text-[#ccff00] transition-all"
-          >
-            {t('categories')}
-          </motion.a>
+
         </motion.div>
       </div>
 
