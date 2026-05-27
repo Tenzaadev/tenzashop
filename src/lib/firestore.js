@@ -1,25 +1,38 @@
-import { getDb } from './firebase'
-import {
-  collection, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, query, where, orderBy, limit, Timestamp, serverTimestamp
-} from 'firebase/firestore'
+'use client'
 
-function getFirestoreDb() {
-  const d = getDb()
-  if (!d) throw new Error('Firebase not configured')
-  return d
+const LS_PRODUCTS = 'tenza_products'
+const LS_ORDERS = 'tenza_orders'
+const LS_USERS = 'tenza_users'
+const LS_REVIEWS = 'tenza_reviews'
+const LS_NOTIFICATIONS = 'tenza_notifications'
+const LS_SUPPORT = 'tenza_support'
+
+function lsGet(key) {
+  if (typeof window === 'undefined') return null
+  try { return JSON.parse(localStorage.getItem(key) || 'null') } catch { return null }
+}
+function lsSet(key, val) {
+  if (typeof window === 'undefined') return
+  try { localStorage.setItem(key, JSON.stringify(val)) } catch {}
 }
 
-/* ------------------------------------------------------------------ */
-/*  HELPERS                                                            */
-/* ------------------------------------------------------------------ */
-const collections = {
-  products: 'products',
-  users: 'users',
-  orders: 'orders',
-  reviews: 'reviews',
-  notifications: 'notifications',
-  support: 'support',
+function subscribeTo(lsKey, eventName, transform, callback) {
+  if (typeof window !== 'undefined') {
+    const data = lsGet(lsKey)
+    callback(data ? (transform ? transform(data) : data) : [])
+  }
+  return () => {}
+}
+
+function flattenNotifs(obj) {
+  if (!obj || typeof obj !== 'object') return []
+  const arr = []
+  Object.keys(obj).forEach(email => {
+    ;(obj[email] || []).forEach(n => {
+      arr.push({ ...n, email: n.email || email })
+    })
+  })
+  return arr
 }
 
 export const generateLoginKey = (login) => 'tenza_user_' + login.toLowerCase().trim()
@@ -29,129 +42,138 @@ export const generateReferralCode = () => 'TENZA-' + Math.random().toString(36).
 /*  PRODUCTS                                                           */
 /* ------------------------------------------------------------------ */
 export function subscribeProducts(callback) {
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.products), orderBy('createdAt', 'desc')),
-    (snapshot) => callback(snapshot.docs.map(d => ({ ...d.data(), _docId: d.id })))
-  )
+  return subscribeTo(LS_PRODUCTS, 'products-updated', null, callback)
 }
 
 export function subscribeProductsByCategory(category, callback) {
-  const q = category && category !== 'all'
-    ? query(collection(getFirestoreDb(), collections.products), where('category', '==', category), orderBy('createdAt', 'desc'))
-    : query(collection(getFirestoreDb(), collections.products), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, (snapshot) => callback(snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }))))
+  return subscribeTo(LS_PRODUCTS, 'products-updated', (data) => {
+    if (category && category !== 'all') return data.filter(p => p.category === category || (category === 'limited' && p.isLimited))
+    return data
+  }, callback)
 }
 
 export async function getAllProducts() {
-  const snapshot = await getDocs(collection(getFirestoreDb(), collections.products))
-  return snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }))
+  return lsGet(LS_PRODUCTS) || []
 }
 
 export async function getProductById(id) {
-  const snap = await getDoc(doc(getFirestoreDb(), collections.products, id))
-  return snap.exists() ? { ...snap.data(), _docId: snap.id } : null
+  const products = lsGet(LS_PRODUCTS) || []
+  return products.find(p => p.id === id || p._docId === id) || null
 }
 
 export async function addProduct(product) {
-  const docId = product.id || `product_${Date.now()}`
-  await setDoc(doc(getFirestoreDb(), collections.products, docId), { ...product, id: docId, createdAt: serverTimestamp() })
-  return { ...product, id: docId }
+  const products = lsGet(LS_PRODUCTS) || []
+  const docId = product.id || 'product_' + Date.now()
+  const entry = { ...product, id: docId, _docId: docId, createdAt: new Date().toISOString() }
+  products.unshift(entry)
+  lsSet(LS_PRODUCTS, products)
+  window.dispatchEvent(new CustomEvent('products-updated'))
+  return entry
 }
 
 export async function updateProduct(id, updates) {
-  await updateDoc(doc(getFirestoreDb(), collections.products, id), { ...updates, updatedAt: serverTimestamp() })
+  const products = lsGet(LS_PRODUCTS) || []
+  const idx = products.findIndex(p => p.id === id || p._docId === id)
+  if (idx >= 0) {
+    products[idx] = { ...products[idx], ...updates, updatedAt: new Date().toISOString() }
+    lsSet(LS_PRODUCTS, products)
+    window.dispatchEvent(new CustomEvent('products-updated'))
+  }
 }
 
 export async function deleteProduct(id) {
-  await deleteDoc(doc(getFirestoreDb(), collections.products, id))
+  let products = lsGet(LS_PRODUCTS) || []
+  products = products.filter(p => p.id !== id && p._docId !== id)
+  lsSet(LS_PRODUCTS, products)
+  window.dispatchEvent(new CustomEvent('products-updated'))
 }
 
 export async function updateProductStock(id, stock) {
-  await updateDoc(doc(getFirestoreDb(), collections.products, id), { stock: Math.max(0, stock) })
+  await updateProduct(id, { stock: Math.max(0, stock) })
 }
 
 export async function seedProducts(products) {
-  const existing = await getAllProducts()
+  const existing = lsGet(LS_PRODUCTS) || []
   if (existing.length > 0) return { skipped: true, count: existing.length }
-  let count = 0
-  for (const p of products) {
-    const docId = p.id || `product_${Date.now()}_${count}`
-    await setDoc(doc(getFirestoreDb(), collections.products, docId), { ...p, id: docId, createdAt: serverTimestamp() })
-    count++
-  }
-  return { seeded: true, count }
+  const entries = products.map((p, i) => ({
+    ...p, _docId: p.id || 'product_' + Date.now() + '_' + i,
+    createdAt: new Date().toISOString()
+  }))
+  lsSet(LS_PRODUCTS, entries)
+  window.dispatchEvent(new CustomEvent('products-updated'))
+  return { seeded: true, count: entries.length }
 }
 
 /* ------------------------------------------------------------------ */
 /*  USERS                                                              */
 /* ------------------------------------------------------------------ */
 export function subscribeAllUsers(callback) {
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.users), orderBy('registeredAt', 'desc')),
-    (snapshot) => {
-      const users = {}
-      snapshot.docs.forEach(d => { users[d.id] = { id: d.id, ...d.data() } })
-      callback(users)
-    }
-  )
+  return subscribeTo(LS_USERS, 'users-updated', null, callback)
 }
 
 export async function getAllUsers() {
-  const snapshot = await getDocs(collection(getFirestoreDb(), collections.users))
-  const users = {}
-  snapshot.docs.forEach(d => { users[d.id] = { id: d.id, ...d.data() } })
-  return users
+  return lsGet(LS_USERS) || {}
 }
 
 export async function getUserDoc(key) {
-  const snap = await getDoc(doc(getFirestoreDb(), collections.users, key))
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null
+  const users = lsGet(LS_USERS) || {}
+  return users[key] ? { id: key, ...users[key] } : null
 }
 
 export async function setUser(key, userData) {
-  const data = { ...userData, updatedAt: serverTimestamp() }
-  if (!userData.registeredAt) data.registeredAt = serverTimestamp()
-  await setDoc(doc(getFirestoreDb(), collections.users, key), data, { merge: true })
+  const users = lsGet(LS_USERS) || {}
+  const data = { ...userData, updatedAt: new Date().toISOString() }
+  if (!userData.registeredAt) data.registeredAt = new Date().toISOString()
+  users[key] = data
+  lsSet(LS_USERS, users)
+  window.dispatchEvent(new CustomEvent('users-updated'))
 }
 
 export async function updateUser(key, updates) {
-  await updateDoc(doc(getFirestoreDb(), collections.users, key), { ...updates, updatedAt: serverTimestamp() })
+  const users = lsGet(LS_USERS) || {}
+  if (users[key]) {
+    users[key] = { ...users[key], ...updates, updatedAt: new Date().toISOString() }
+    lsSet(LS_USERS, users)
+    window.dispatchEvent(new CustomEvent('users-updated'))
+  }
 }
 
 export async function isLoginTaken(login) {
   const key = generateLoginKey(login.trim())
-  const snap = await getDoc(doc(getFirestoreDb(), collections.users, key))
-  return snap.exists()
+  const users = lsGet(LS_USERS) || {}
+  return !!users[key]
 }
 
 export async function findUserByReferralCode(code) {
-  const snapshot = await getDocs(
-    query(collection(getFirestoreDb(), collections.users), where('referralCode', '==', code), limit(1))
-  )
-  return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
+  const users = lsGet(LS_USERS) || {}
+  const match = Object.keys(users).find(k => users[k].referralCode === code)
+  return match ? { id: match, ...users[match] } : null
 }
 
 export async function addPurchaseBonus(login, amountUSD) {
   const key = generateLoginKey(login)
-  const snap = await getDoc(doc(getFirestoreDb(), collections.users, key))
-  if (!snap.exists()) return
-  const user = snap.data()
+  const users = lsGet(LS_USERS) || {}
+  if (!users[key]) return
+  const user = users[key]
   const coinsToAdd = Math.floor(amountUSD)
   if (coinsToAdd <= 0) return
   const purchases = user.purchases || []
   purchases.push({ date: new Date().toISOString(), amount: amountUSD, bonus: coinsToAdd })
-  await updateDoc(doc(getFirestoreDb(), collections.users, key), {
+  users[key] = {
+    ...user,
     coins: (user.coins || 0) + coinsToAdd,
     totalPurchases: (user.totalPurchases || 0) + 1,
     totalSpent: (user.totalSpent || 0) + amountUSD,
     purchases,
-    updatedAt: serverTimestamp(),
-  })
+    updatedAt: new Date().toISOString(),
+  }
+  lsSet(LS_USERS, users)
+  window.dispatchEvent(new CustomEvent('users-updated'))
 }
 
 export async function getUserStats() {
-  const snapshot = await getDocs(collection(getFirestoreDb(), collections.users))
-  const vals = snapshot.docs.map(d => d.data())
+  const users = lsGet(LS_USERS) || {}
+  const vals = Object.values(users)
   return {
     totalUsers: vals.length,
     totalCoins: vals.reduce((s, u) => s + (u.coins || 0), 0),
@@ -163,122 +185,142 @@ export async function getUserStats() {
 /*  ORDERS                                                             */
 /* ------------------------------------------------------------------ */
 export function subscribeOrders(callback) {
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.orders), orderBy('createdAt', 'desc')),
-    (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-  )
+  return subscribeTo(LS_ORDERS, 'orders-updated', null, callback)
 }
 
 export async function getAllOrders() {
-  const snapshot = await getDocs(
-    query(collection(getFirestoreDb(), collections.orders), orderBy('createdAt', 'desc'))
-  )
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  return lsGet(LS_ORDERS) || []
 }
 
 export async function addOrder(order) {
-  const ref = await addDoc(collection(getFirestoreDb(), collections.orders), { ...order, createdAt: serverTimestamp() })
-  return { id: ref.id, ...order }
+  const orders = lsGet(LS_ORDERS) || []
+  const entry = { ...order, id: order.id || 'TENZA-' + Date.now().toString(36).toUpperCase(), createdAt: order.createdAt || new Date().toISOString() }
+  orders.unshift(entry)
+  lsSet(LS_ORDERS, orders)
+  window.dispatchEvent(new CustomEvent('orders-updated'))
+  return entry
 }
 
 export async function updateOrder(id, updates) {
-  await updateDoc(doc(getFirestoreDb(), collections.orders, id), { ...updates, updatedAt: serverTimestamp() })
+  const orders = lsGet(LS_ORDERS) || []
+  const idx = orders.findIndex(o => o.id === id || o.orderId === id)
+  if (idx >= 0) {
+    orders[idx] = { ...orders[idx], ...updates, updatedAt: new Date().toISOString() }
+    lsSet(LS_ORDERS, orders)
+    window.dispatchEvent(new CustomEvent('orders-updated'))
+  }
 }
 
 export async function deleteOrder(id) {
-  await deleteDoc(doc(getFirestoreDb(), collections.orders, id))
+  let orders = lsGet(LS_ORDERS) || []
+  orders = orders.filter(o => o.id !== id && o.orderId !== id)
+  lsSet(LS_ORDERS, orders)
+  window.dispatchEvent(new CustomEvent('orders-updated'))
 }
 
 export async function getUserOrders(login, callback) {
-  if (!callback) {
-    const snapshot = await getDocs(
-      query(collection(getFirestoreDb(), collections.orders), where('login', '==', login), orderBy('createdAt', 'desc'))
-    )
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  const all = lsGet(LS_ORDERS) || []
+  const userOrders = all.filter(o => o.login === login || o.email === login)
+  if (callback) {
+    callback(userOrders)
+    return () => {}
   }
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.orders), where('login', '==', login), orderBy('createdAt', 'desc')),
-    (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-  )
+  return userOrders
 }
 
 /* ------------------------------------------------------------------ */
 /*  REVIEWS                                                            */
 /* ------------------------------------------------------------------ */
 export function subscribeReviews(callback) {
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.reviews), orderBy('createdAt', 'desc')),
-    (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-  )
+  return subscribeTo(LS_REVIEWS, 'reviews-updated', null, callback)
 }
 
 export function subscribeProductReviews(productId, callback) {
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.reviews), where('productId', '==', productId), orderBy('createdAt', 'desc')),
-    (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-  )
+  return subscribeTo(LS_REVIEWS, 'reviews-updated', (data) => {
+    return (data || []).filter(r => r.productId === productId)
+  }, callback)
 }
 
 export async function getAllReviews() {
-  const snapshot = await getDocs(
-    query(collection(getFirestoreDb(), collections.reviews), orderBy('createdAt', 'desc'))
-  )
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  return lsGet(LS_REVIEWS) || []
 }
 
 export async function addReview(review) {
-  const ref = await addDoc(collection(getFirestoreDb(), collections.reviews), { ...review, createdAt: serverTimestamp() })
-  return { id: ref.id, ...review }
+  const reviews = lsGet(LS_REVIEWS) || []
+  const entry = { ...review, id: 'REVIEW-' + Date.now().toString(36), createdAt: new Date().toISOString() }
+  reviews.unshift(entry)
+  lsSet(LS_REVIEWS, reviews)
+  window.dispatchEvent(new CustomEvent('reviews-updated'))
+  return entry
 }
 
 /* ------------------------------------------------------------------ */
 /*  NOTIFICATIONS                                                      */
 /* ------------------------------------------------------------------ */
 export function subscribeNotifications(callback) {
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.notifications), orderBy('createdAt', 'desc')),
-    (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-  )
+  return subscribeTo(LS_NOTIFICATIONS, 'notifications-updated', flattenNotifs, callback)
 }
 
 export async function getAllNotifications() {
-  const snapshot = await getDocs(
-    query(collection(getFirestoreDb(), collections.notifications), orderBy('createdAt', 'desc'))
-  )
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  return flattenNotifs(lsGet(LS_NOTIFICATIONS))
 }
 
 export async function addNotification(notification) {
-  const ref = await addDoc(collection(getFirestoreDb(), collections.notifications), { ...notification, createdAt: serverTimestamp() })
-  return { id: ref.id, ...notification }
+  const notifs = lsGet(LS_NOTIFICATIONS) || {}
+  const email = notification.email
+  if (!email) return null
+  if (!notifs[email]) notifs[email] = []
+  const entry = { id: 'NOTIF-' + Date.now().toString(36), ...notification, createdAt: new Date().toISOString(), read: false }
+  notifs[email].unshift(entry)
+  lsSet(LS_NOTIFICATIONS, notifs)
+  window.dispatchEvent(new CustomEvent('notifications-updated'))
+  window.dispatchEvent(new CustomEvent('notification-added'))
+  return entry
 }
 
 export async function markNotificationRead(id) {
-  await updateDoc(doc(getFirestoreDb(), collections.notifications, id), { read: true })
+  const notifs = lsGet(LS_NOTIFICATIONS) || {}
+  Object.keys(notifs).forEach(email => {
+    const arr = notifs[email] || []
+    const idx = arr.findIndex(n => n.id === id)
+    if (idx >= 0) {
+      arr[idx].read = true
+      notifs[email] = arr
+    }
+  })
+  lsSet(LS_NOTIFICATIONS, notifs)
+  window.dispatchEvent(new CustomEvent('notifications-updated'))
 }
 
 /* ------------------------------------------------------------------ */
 /*  SUPPORT MESSAGES                                                   */
 /* ------------------------------------------------------------------ */
 export function subscribeSupportMessages(callback) {
-  return onSnapshot(
-    query(collection(getFirestoreDb(), collections.support), orderBy('createdAt', 'desc')),
-    (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-  )
+  return subscribeTo(LS_SUPPORT, 'support-updated', null, callback)
 }
 
 export async function getAllSupportMessages() {
-  const snapshot = await getDocs(
-    query(collection(getFirestoreDb(), collections.support), orderBy('createdAt', 'desc'))
-  )
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  return lsGet(LS_SUPPORT) || []
 }
 
 export async function addSupportMessage(msg) {
-  const ref = await addDoc(collection(getFirestoreDb(), collections.support), { ...msg, createdAt: serverTimestamp() })
-  return { id: ref.id, ...msg }
+  const messages = lsGet(LS_SUPPORT) || []
+  const entry = { ...msg, id: 'SUPPORT-' + Date.now().toString(36), createdAt: new Date().toISOString(), status: 'pending', replies: [] }
+  messages.unshift(entry)
+  lsSet(LS_SUPPORT, messages)
+  window.dispatchEvent(new CustomEvent('support-updated'))
+  window.dispatchEvent(new CustomEvent('support-message-updated'))
+  return entry
 }
 
 export async function markSupportReplied(id) {
-  await updateDoc(doc(getFirestoreDb(), collections.support, id), { replied: true, updatedAt: serverTimestamp() })
+  const messages = lsGet(LS_SUPPORT) || []
+  const idx = messages.findIndex(m => m.id === id)
+  if (idx >= 0) {
+    messages[idx].replied = true
+    messages[idx].updatedAt = new Date().toISOString()
+    lsSet(LS_SUPPORT, messages)
+    window.dispatchEvent(new CustomEvent('support-updated'))
+    window.dispatchEvent(new CustomEvent('support-message-updated'))
+  }
 }

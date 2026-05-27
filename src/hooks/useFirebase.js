@@ -1,50 +1,68 @@
-import { db } from '@/lib/firebase'
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
+'use client'
 
 export function getProducts(callback) {
-  return onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snapshot) => {
-    const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    callback(products)
-  })
+  try {
+    const data = JSON.parse(localStorage.getItem('tenza_products') || '[]')
+    callback(data)
+  } catch { callback([]) }
+  return () => {}
 }
 
 export async function addProductToFirebase(product) {
-  return await addDoc(collection(db, 'products'), product)
+  const data = JSON.parse(localStorage.getItem('tenza_products') || '[]')
+  data.unshift({ ...product, id: 'product_' + Date.now() })
+  localStorage.setItem('tenza_products', JSON.stringify(data))
+  window.dispatchEvent(new CustomEvent('products-updated'))
+  return data[0]
 }
 
 export async function updateProductInFirebase(id, updates) {
-  return await updateDoc(doc(db, 'products', id), updates)
+  const data = JSON.parse(localStorage.getItem('tenza_products') || '[]')
+  const idx = data.findIndex(p => p.id === id)
+  if (idx >= 0) { data[idx] = { ...data[idx], ...updates }; localStorage.setItem('tenza_products', JSON.stringify(data)); window.dispatchEvent(new CustomEvent('products-updated')) }
 }
 
 export async function deleteProductFromFirebase(id) {
-  return await deleteDoc(doc(db, 'products', id))
+  let data = JSON.parse(localStorage.getItem('tenza_products') || '[]')
+  data = data.filter(p => p.id !== id)
+  localStorage.setItem('tenza_products', JSON.stringify(data))
+  window.dispatchEvent(new CustomEvent('products-updated'))
 }
 
 export function getOrders(callback) {
-  return onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snapshot) => {
-    const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    callback(orders)
-  })
+  try {
+    const data = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
+    callback(data)
+  } catch { callback([]) }
+  return () => {}
 }
 
 export async function addOrderToFirebase(order) {
-  return await addDoc(collection(db, 'orders'), order)
+  const data = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
+  data.unshift({ ...order, id: 'TENZA-' + Date.now().toString(36).toUpperCase() })
+  localStorage.setItem('tenza_orders', JSON.stringify(data))
+  window.dispatchEvent(new CustomEvent('orders-updated'))
+  return data[0]
 }
 
 export async function updateOrderInFirebase(id, updates) {
-  return await updateDoc(doc(db, 'orders', id), updates)
+  const data = JSON.parse(localStorage.getItem('tenza_orders') || '[]')
+  const idx = data.findIndex(o => o.id === id)
+  if (idx >= 0) { data[idx] = { ...data[idx], ...updates }; localStorage.setItem('tenza_orders', JSON.stringify(data)); window.dispatchEvent(new CustomEvent('orders-updated')) }
 }
 
 export async function addUserToFirebase(user) {
-  return await addDoc(collection(db, 'users'), user)
+  const users = JSON.parse(localStorage.getItem('tenza_users') || '{}')
+  const key = user.login ? 'tenza_user_' + user.login.toLowerCase().trim() : 'user_' + Date.now()
+  users[key] = { ...user, id: key, registeredAt: new Date().toISOString() }
+  localStorage.setItem('tenza_users', JSON.stringify(users))
+  window.dispatchEvent(new CustomEvent('users-updated'))
 }
 
 export async function getAllProducts() {
-  const snapshot = await getDocs(collection(db, 'products'))
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  try { return JSON.parse(localStorage.getItem('tenza_products') || '[]') } catch { return [] }
 }
 
 export async function getAllOrders() {
-  const snapshot = await getDocs(collection(db, 'orders'))
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  try { return JSON.parse(localStorage.getItem('tenza_orders') || '[]') } catch { return [] }
 }

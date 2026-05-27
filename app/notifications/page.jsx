@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, BellOff, CheckCircle, XCircle, Trash2, Reply, Send, Loader2, MessageSquare, ExternalLink, Coins, Package } from 'lucide-react'
 import { subscribeNotifications, markNotificationRead } from '@/lib/firestore'
-import { deleteDoc, doc, getDocs, collection, query, where } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { useI18n } from '@/i18n'
 
 
@@ -133,9 +131,15 @@ export default function NotificationsPage() {
   }, [])
 
   const handleMarkAllRead = async () => {
-    const q = query(collection(db, 'notifications'), where('email', '==', userEmail), where('read', '==', false))
-    const snapshot = await getDocs(q)
-    await Promise.all(snapshot.docs.map(d => markNotificationRead(d.id)))
+    try {
+      const notifs = JSON.parse(localStorage.getItem('tenza_notifications') || '{}')
+      if (notifs[userEmail]) {
+        notifs[userEmail] = notifs[userEmail].map(n => ({ ...n, read: true }))
+        localStorage.setItem('tenza_notifications', JSON.stringify(notifs))
+        window.dispatchEvent(new CustomEvent('notifications-updated'))
+        setNotifs(prev => prev.map(n => ({ ...n, read: true })))
+      }
+    } catch {}
   }
 
   const handleClick = async (notifId) => {
@@ -154,7 +158,14 @@ export default function NotificationsPage() {
 
   const handleDelete = async (e, notifId) => {
     e.stopPropagation()
-    await deleteDoc(doc(db, 'notifications', notifId))
+    try {
+      const notifs = JSON.parse(localStorage.getItem('tenza_notifications') || '{}')
+      Object.keys(notifs).forEach(email => {
+        notifs[email] = (notifs[email] || []).filter(n => n.id !== notifId)
+      })
+      localStorage.setItem('tenza_notifications', JSON.stringify(notifs))
+      window.dispatchEvent(new CustomEvent('notifications-updated'))
+    } catch {}
     setExpanded(null)
   }
 

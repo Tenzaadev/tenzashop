@@ -8,8 +8,6 @@ import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/hooks/useCart'
 import { getOrders } from '@/data/orders'
 import { subscribeProductReviews, addReview } from '@/lib/firestore'
-import { deleteDoc, doc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import StarRating from '../components/StarRating'
 import PhotoReview from '@/components/PhotoReview'
 import ReviewCard from '@/components/ReviewCard'
@@ -79,8 +77,13 @@ function PurchasedProductCard({ product, locale, lang, user }) {
 
   const handleDeleteReview = async () => {
     if (existingReview) {
-      await deleteDoc(doc(db, 'reviews', existingReview.id))
-      setExistingReview(null)
+      try {
+        const reviews = JSON.parse(localStorage.getItem('tenza_reviews') || '[]')
+        const filtered = reviews.filter(r => r.id !== existingReview.id)
+        localStorage.setItem('tenza_reviews', JSON.stringify(filtered))
+        setExistingReview(null)
+        window.dispatchEvent(new CustomEvent('reviews-updated'))
+      } catch {}
     }
   }
 

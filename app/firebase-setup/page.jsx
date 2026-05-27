@@ -60,7 +60,14 @@ export default function FirebaseSetupPage() {
       const result = await seedProducts(defaultProducts)
       setSeedResult(result)
     } catch (e) {
-      setSeedResult({ error: e.message })
+      try {
+        const { defaultProducts } = await import('@/data/productStore')
+        localStorage.setItem('tenza_products', JSON.stringify(defaultProducts))
+        window.dispatchEvent(new CustomEvent('products-updated'))
+        setSeedResult({ seeded: true, count: defaultProducts.length })
+      } catch {
+        setSeedResult({ error: e.message })
+      }
     }
     setSeeding(false)
   }

@@ -4,8 +4,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, Send, MessageSquare, CheckCircle, RefreshCw } from 'lucide-react'
 import { subscribeSupportMessages, addSupportMessage } from '@/lib/firestore'
-import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { useI18n } from '@/i18n'
 
 const translations = {
@@ -316,16 +314,23 @@ export default function SupportPage() {
 
   const handleCustomerReply = async (messageId) => {
     if (!replyText.trim()) return
-    await updateDoc(doc(db, 'support', messageId), {
-      replies: arrayUnion({
-        id: 'REPLY-' + Date.now().toString(36),
-        from: 'customer',
-        text: replyText.trim(),
-        createdAt: new Date().toISOString(),
-      }),
-      status: 'pending',
-      updatedAt: serverTimestamp(),
-    })
+    try {
+      const messages = JSON.parse(localStorage.getItem('tenza_support') || '[]')
+      const idx = messages.findIndex(m => m.id === messageId)
+      if (idx >= 0) {
+        messages[idx].replies = messages[idx].replies || []
+        messages[idx].replies.push({
+          id: 'REPLY-' + Date.now().toString(36),
+          from: 'customer',
+          text: replyText.trim(),
+          createdAt: new Date().toISOString(),
+        })
+        messages[idx].status = 'pending'
+        messages[idx].updatedAt = new Date().toISOString()
+        localStorage.setItem('tenza_support', JSON.stringify(messages))
+        window.dispatchEvent(new CustomEvent('support-updated'))
+      }
+    } catch {}
     setReplyText('')
     setReplySent(true)
     setTimeout(() => setReplySent(false), 3000)
