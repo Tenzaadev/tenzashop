@@ -11,7 +11,7 @@ import {
   getStatusIcon, getNextValidStatuses,
   getNotifMessage, itemName, STATUS_LABELS
 } from '@/utils/orders'
-import { subscribeOrders, updateOrder } from '@/lib/firestore'
+import { subscribeOrders, updateOrder as localUpdateOrder, getAllOrders } from '@/lib/firestore'
 import { processOrderCoins, addNotification, getUserByEmail, COIN_USD_VALUE } from '@/utils/coins'
 import { useI18n } from '@/i18n'
 
@@ -146,8 +146,27 @@ export default function AdminOrdersPage() {
   const [processingAction, setProcessingAction] = useState(false)
 
   useEffect(() => {
-    const unsub = subscribeOrders(setAllOrders)
-    return () => unsub()
+    let mounted = true
+    fetch('/api/orders').then(r => r.json()).then(data => {
+      if (mounted && data.orders) setAllOrders(data.orders)
+    }).catch(() => {})
+    const unsub = subscribeOrders(localOrders => {
+      fetch('/api/orders').then(r => r.json()).then(data => {
+        if (!mounted) return
+        if (data.orders) {
+          const merged = [...data.orders]
+          localOrders.forEach(lo => {
+            if (!merged.find(mo => (mo.id || mo.orderId) === (lo.id || lo.orderId))) {
+              merged.push(lo)
+            }
+          })
+          setAllOrders(merged)
+        } else {
+          setAllOrders(localOrders)
+        }
+      }).catch(() => setAllOrders(localOrders))
+    })
+    return () => { mounted = false; unsub() }
   }, [])
 
   useEffect(() => {
@@ -186,14 +205,17 @@ export default function AdminOrdersPage() {
 
     const historyEntry = { status: 'paid', time: new Date().toISOString(), note: 'Payment confirmed by admin' }
 
-    await updateOrder(order.id || order.orderId, {
+    const updates = {
       status: 'paid',
       paidAt: new Date().toISOString(),
       coinsDeducted: coinResult.coinsDeducted,
       coinsEarned: coinResult.coinsEarned,
       remainingPayment: coinResult.remainingPayment,
       history: [...(order.history || []), historyEntry],
-    })
+    }
+
+    await updateOrder(order.id || order.orderId, updates)
+    fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: order.id || order.orderId, ...updates }) }).catch(() => {})
 
     const notif = getNotifMessage('paid', order, locale)
     if (notif) {
@@ -220,10 +242,13 @@ export default function AdminOrdersPage() {
 
     const historyEntry = { status: 'cancelled', time: new Date().toISOString(), note: 'Payment rejected by admin' }
 
-    await updateOrder(order.id || order.orderId, {
+    const updates = {
       status: 'cancelled',
       history: [...(order.history || []), historyEntry],
-    })
+    }
+
+    await updateOrder(order.id || order.orderId, updates)
+    fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: order.id || order.orderId, ...updates }) }).catch(() => {})
 
     const notif = getNotifMessage('cancelled', order, locale)
     if (notif) {
@@ -253,6 +278,7 @@ export default function AdminOrdersPage() {
     }
 
     await updateOrder(selectedOrder.id || selectedOrder.orderId, updates)
+    fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedOrder.id || selectedOrder.orderId, ...updates }) }).catch(() => {})
 
     const notif = getNotifMessage(newStatus, selectedOrder, locale)
     if (notif) {

@@ -74,7 +74,7 @@ export default function ProductCard({ product }) {
       <Link href={`/product/${product.id}`} className="block">
         <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-900 to-black overflow-hidden">
           <Image
-            src={imgError ? fallbackImage : product.image}
+            src={imgError ? fallbackImage : (product.image || fallbackImage)}
             alt={name}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"

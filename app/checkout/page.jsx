@@ -292,6 +292,7 @@ export default function CheckoutPage() {
     }
 
     await addOrder(order)
+    fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
     saveProfileData(form)
     clearCart()
     localStorage.setItem('tenza_user_email', form.customerEmail)
