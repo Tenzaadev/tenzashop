@@ -1,8 +1,14 @@
-import { db } from './firebase'
+import { getDb } from './firebase'
 import {
   collection, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, doc,
   onSnapshot, query, where, orderBy, limit, Timestamp, serverTimestamp
 } from 'firebase/firestore'
+
+function getFirestoreDb() {
+  const d = getDb()
+  if (!d) throw new Error('Firebase not configured')
+  return d
+}
 
 /* ------------------------------------------------------------------ */
 /*  HELPERS                                                            */
@@ -24,44 +30,44 @@ export const generateReferralCode = () => 'TENZA-' + Math.random().toString(36).
 /* ------------------------------------------------------------------ */
 export function subscribeProducts(callback) {
   return onSnapshot(
-    query(collection(db, collections.products), orderBy('createdAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.products), orderBy('createdAt', 'desc')),
     (snapshot) => callback(snapshot.docs.map(d => ({ ...d.data(), _docId: d.id })))
   )
 }
 
 export function subscribeProductsByCategory(category, callback) {
   const q = category && category !== 'all'
-    ? query(collection(db, collections.products), where('category', '==', category), orderBy('createdAt', 'desc'))
-    : query(collection(db, collections.products), orderBy('createdAt', 'desc'))
+    ? query(collection(getFirestoreDb(), collections.products), where('category', '==', category), orderBy('createdAt', 'desc'))
+    : query(collection(getFirestoreDb(), collections.products), orderBy('createdAt', 'desc'))
   return onSnapshot(q, (snapshot) => callback(snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }))))
 }
 
 export async function getAllProducts() {
-  const snapshot = await getDocs(collection(db, collections.products))
+  const snapshot = await getDocs(collection(getFirestoreDb(), collections.products))
   return snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }))
 }
 
 export async function getProductById(id) {
-  const snap = await getDoc(doc(db, collections.products, id))
+  const snap = await getDoc(doc(getFirestoreDb(), collections.products, id))
   return snap.exists() ? { ...snap.data(), _docId: snap.id } : null
 }
 
 export async function addProduct(product) {
   const docId = product.id || `product_${Date.now()}`
-  await setDoc(doc(db, collections.products, docId), { ...product, id: docId, createdAt: serverTimestamp() })
+  await setDoc(doc(getFirestoreDb(), collections.products, docId), { ...product, id: docId, createdAt: serverTimestamp() })
   return { ...product, id: docId }
 }
 
 export async function updateProduct(id, updates) {
-  await updateDoc(doc(db, collections.products, id), { ...updates, updatedAt: serverTimestamp() })
+  await updateDoc(doc(getFirestoreDb(), collections.products, id), { ...updates, updatedAt: serverTimestamp() })
 }
 
 export async function deleteProduct(id) {
-  await deleteDoc(doc(db, collections.products, id))
+  await deleteDoc(doc(getFirestoreDb(), collections.products, id))
 }
 
 export async function updateProductStock(id, stock) {
-  await updateDoc(doc(db, collections.products, id), { stock: Math.max(0, stock) })
+  await updateDoc(doc(getFirestoreDb(), collections.products, id), { stock: Math.max(0, stock) })
 }
 
 export async function seedProducts(products) {
@@ -70,7 +76,7 @@ export async function seedProducts(products) {
   let count = 0
   for (const p of products) {
     const docId = p.id || `product_${Date.now()}_${count}`
-    await setDoc(doc(db, collections.products, docId), { ...p, id: docId, createdAt: serverTimestamp() })
+    await setDoc(doc(getFirestoreDb(), collections.products, docId), { ...p, id: docId, createdAt: serverTimestamp() })
     count++
   }
   return { seeded: true, count }
@@ -81,7 +87,7 @@ export async function seedProducts(products) {
 /* ------------------------------------------------------------------ */
 export function subscribeAllUsers(callback) {
   return onSnapshot(
-    query(collection(db, collections.users), orderBy('registeredAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.users), orderBy('registeredAt', 'desc')),
     (snapshot) => {
       const users = {}
       snapshot.docs.forEach(d => { users[d.id] = { id: d.id, ...d.data() } })
@@ -91,50 +97,50 @@ export function subscribeAllUsers(callback) {
 }
 
 export async function getAllUsers() {
-  const snapshot = await getDocs(collection(db, collections.users))
+  const snapshot = await getDocs(collection(getFirestoreDb(), collections.users))
   const users = {}
   snapshot.docs.forEach(d => { users[d.id] = { id: d.id, ...d.data() } })
   return users
 }
 
 export async function getUserDoc(key) {
-  const snap = await getDoc(doc(db, collections.users, key))
+  const snap = await getDoc(doc(getFirestoreDb(), collections.users, key))
   return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }
 
 export async function setUser(key, userData) {
   const data = { ...userData, updatedAt: serverTimestamp() }
   if (!userData.registeredAt) data.registeredAt = serverTimestamp()
-  await setDoc(doc(db, collections.users, key), data, { merge: true })
+  await setDoc(doc(getFirestoreDb(), collections.users, key), data, { merge: true })
 }
 
 export async function updateUser(key, updates) {
-  await updateDoc(doc(db, collections.users, key), { ...updates, updatedAt: serverTimestamp() })
+  await updateDoc(doc(getFirestoreDb(), collections.users, key), { ...updates, updatedAt: serverTimestamp() })
 }
 
 export async function isLoginTaken(login) {
   const key = generateLoginKey(login.trim())
-  const snap = await getDoc(doc(db, collections.users, key))
+  const snap = await getDoc(doc(getFirestoreDb(), collections.users, key))
   return snap.exists()
 }
 
 export async function findUserByReferralCode(code) {
   const snapshot = await getDocs(
-    query(collection(db, collections.users), where('referralCode', '==', code), limit(1))
+    query(collection(getFirestoreDb(), collections.users), where('referralCode', '==', code), limit(1))
   )
   return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
 }
 
 export async function addPurchaseBonus(login, amountUSD) {
   const key = generateLoginKey(login)
-  const snap = await getDoc(doc(db, collections.users, key))
+  const snap = await getDoc(doc(getFirestoreDb(), collections.users, key))
   if (!snap.exists()) return
   const user = snap.data()
   const coinsToAdd = Math.floor(amountUSD)
   if (coinsToAdd <= 0) return
   const purchases = user.purchases || []
   purchases.push({ date: new Date().toISOString(), amount: amountUSD, bonus: coinsToAdd })
-  await updateDoc(doc(db, collections.users, key), {
+  await updateDoc(doc(getFirestoreDb(), collections.users, key), {
     coins: (user.coins || 0) + coinsToAdd,
     totalPurchases: (user.totalPurchases || 0) + 1,
     totalSpent: (user.totalSpent || 0) + amountUSD,
@@ -144,7 +150,7 @@ export async function addPurchaseBonus(login, amountUSD) {
 }
 
 export async function getUserStats() {
-  const snapshot = await getDocs(collection(db, collections.users))
+  const snapshot = await getDocs(collection(getFirestoreDb(), collections.users))
   const vals = snapshot.docs.map(d => d.data())
   return {
     totalUsers: vals.length,
@@ -158,40 +164,40 @@ export async function getUserStats() {
 /* ------------------------------------------------------------------ */
 export function subscribeOrders(callback) {
   return onSnapshot(
-    query(collection(db, collections.orders), orderBy('createdAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.orders), orderBy('createdAt', 'desc')),
     (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
 
 export async function getAllOrders() {
   const snapshot = await getDocs(
-    query(collection(db, collections.orders), orderBy('createdAt', 'desc'))
+    query(collection(getFirestoreDb(), collections.orders), orderBy('createdAt', 'desc'))
   )
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 export async function addOrder(order) {
-  const ref = await addDoc(collection(db, collections.orders), { ...order, createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(getFirestoreDb(), collections.orders), { ...order, createdAt: serverTimestamp() })
   return { id: ref.id, ...order }
 }
 
 export async function updateOrder(id, updates) {
-  await updateDoc(doc(db, collections.orders, id), { ...updates, updatedAt: serverTimestamp() })
+  await updateDoc(doc(getFirestoreDb(), collections.orders, id), { ...updates, updatedAt: serverTimestamp() })
 }
 
 export async function deleteOrder(id) {
-  await deleteDoc(doc(db, collections.orders, id))
+  await deleteDoc(doc(getFirestoreDb(), collections.orders, id))
 }
 
 export async function getUserOrders(login, callback) {
   if (!callback) {
     const snapshot = await getDocs(
-      query(collection(db, collections.orders), where('login', '==', login), orderBy('createdAt', 'desc'))
+      query(collection(getFirestoreDb(), collections.orders), where('login', '==', login), orderBy('createdAt', 'desc'))
     )
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
   }
   return onSnapshot(
-    query(collection(db, collections.orders), where('login', '==', login), orderBy('createdAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.orders), where('login', '==', login), orderBy('createdAt', 'desc')),
     (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
@@ -201,27 +207,27 @@ export async function getUserOrders(login, callback) {
 /* ------------------------------------------------------------------ */
 export function subscribeReviews(callback) {
   return onSnapshot(
-    query(collection(db, collections.reviews), orderBy('createdAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.reviews), orderBy('createdAt', 'desc')),
     (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
 
 export function subscribeProductReviews(productId, callback) {
   return onSnapshot(
-    query(collection(db, collections.reviews), where('productId', '==', productId), orderBy('createdAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.reviews), where('productId', '==', productId), orderBy('createdAt', 'desc')),
     (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
 
 export async function getAllReviews() {
   const snapshot = await getDocs(
-    query(collection(db, collections.reviews), orderBy('createdAt', 'desc'))
+    query(collection(getFirestoreDb(), collections.reviews), orderBy('createdAt', 'desc'))
   )
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 export async function addReview(review) {
-  const ref = await addDoc(collection(db, collections.reviews), { ...review, createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(getFirestoreDb(), collections.reviews), { ...review, createdAt: serverTimestamp() })
   return { id: ref.id, ...review }
 }
 
@@ -230,25 +236,25 @@ export async function addReview(review) {
 /* ------------------------------------------------------------------ */
 export function subscribeNotifications(callback) {
   return onSnapshot(
-    query(collection(db, collections.notifications), orderBy('createdAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.notifications), orderBy('createdAt', 'desc')),
     (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
 
 export async function getAllNotifications() {
   const snapshot = await getDocs(
-    query(collection(db, collections.notifications), orderBy('createdAt', 'desc'))
+    query(collection(getFirestoreDb(), collections.notifications), orderBy('createdAt', 'desc'))
   )
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 export async function addNotification(notification) {
-  const ref = await addDoc(collection(db, collections.notifications), { ...notification, createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(getFirestoreDb(), collections.notifications), { ...notification, createdAt: serverTimestamp() })
   return { id: ref.id, ...notification }
 }
 
 export async function markNotificationRead(id) {
-  await updateDoc(doc(db, collections.notifications, id), { read: true })
+  await updateDoc(doc(getFirestoreDb(), collections.notifications, id), { read: true })
 }
 
 /* ------------------------------------------------------------------ */
@@ -256,23 +262,23 @@ export async function markNotificationRead(id) {
 /* ------------------------------------------------------------------ */
 export function subscribeSupportMessages(callback) {
   return onSnapshot(
-    query(collection(db, collections.support), orderBy('createdAt', 'desc')),
+    query(collection(getFirestoreDb(), collections.support), orderBy('createdAt', 'desc')),
     (snapshot) => callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
 
 export async function getAllSupportMessages() {
   const snapshot = await getDocs(
-    query(collection(db, collections.support), orderBy('createdAt', 'desc'))
+    query(collection(getFirestoreDb(), collections.support), orderBy('createdAt', 'desc'))
   )
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 export async function addSupportMessage(msg) {
-  const ref = await addDoc(collection(db, collections.support), { ...msg, createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(getFirestoreDb(), collections.support), { ...msg, createdAt: serverTimestamp() })
   return { id: ref.id, ...msg }
 }
 
 export async function markSupportReplied(id) {
-  await updateDoc(doc(db, collections.support, id), { replied: true, updatedAt: serverTimestamp() })
+  await updateDoc(doc(getFirestoreDb(), collections.support, id), { replied: true, updatedAt: serverTimestamp() })
 }

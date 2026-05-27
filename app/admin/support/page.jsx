@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Search, Send, MessageCircle, ArrowLeft, Eye } from 'lucide-react'
 import { subscribeSupportMessages, markSupportReplied } from '@/lib/firestore'
 import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { getDb } from '@/lib/firebase'
 import { useI18n } from '@/i18n'
 
 const L = {
@@ -92,7 +92,7 @@ export default function AdminSupportPage() {
     const input = document.getElementById('admin-reply-input')
     if (!input?.value?.trim() || !selected) return
     const text = input.value.trim()
-    await updateDoc(doc(db, 'support', selected.id), {
+    await updateDoc(doc(getDb(), 'support', selected.id), {
       replies: arrayUnion({
         id: 'REPLY-' + Date.now().toString(36),
         from: 'admin',
@@ -108,7 +108,7 @@ export default function AdminSupportPage() {
 
   const handleCloseTicket = async () => {
     if (!selected) return
-    await updateDoc(doc(db, 'support', selected.id), {
+    await updateDoc(doc(getDb(), 'support', selected.id), {
       status: 'closed',
       updatedAt: serverTimestamp(),
     })
@@ -116,7 +116,7 @@ export default function AdminSupportPage() {
 
   const handleStatusChange = async (newStatus) => {
     if (!selected) return
-    await updateDoc(doc(db, 'support', selected.id), {
+    await updateDoc(doc(getDb(), 'support', selected.id), {
       status: newStatus,
       updatedAt: serverTimestamp(),
     })
