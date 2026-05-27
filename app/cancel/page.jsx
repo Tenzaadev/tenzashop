@@ -10,7 +10,7 @@ export default function CancelPage() {
   return (
     <div className="min-h-screen bg-[#050505]">
       <Header onCartOpen={() => {}} />
-      <main className="pt-32 pb-20">
+      <main className="pt-32 pb-8">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-8">
             <XCircle size={48} className="text-red-500" />

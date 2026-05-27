@@ -123,7 +123,7 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen bg-[#050505]">
       <Header />
-      <main className="pt-24 pb-20">
+      <main className="pt-24 pb-8">
         <div className="max-w-7xl mx-auto px-4">
           <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors group">
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />

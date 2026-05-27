@@ -84,7 +84,7 @@ export default function Header() {
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ccff00] text-black text-xs font-bold rounded-full flex items-center justify-center">{totalQuantity}</span>
               )}
             </button>
-            <Link href="/notifications" className="relative w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:border-[#ccff00]/50 flex items-center justify-center transition-all group">
+            <Link href="/notifications" className="hidden md:flex relative w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:border-[#ccff00]/50 items-center justify-center transition-all group">
               <Bell size={20} className="text-gray-400 group-hover:text-[#ccff00] transition-colors" />
               {unreadNotifs > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">{unreadNotifs}</span>

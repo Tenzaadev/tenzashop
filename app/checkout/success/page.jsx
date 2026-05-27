@@ -11,7 +11,7 @@ export default function SuccessPage() {
   return (
     <div className="min-h-screen bg-[#050505]">
       <Header />
-      <main className="pt-24 pb-20">
+      <main className="pt-24 pb-8">
         <div className="max-w-lg mx-auto px-4 text-center">
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
             className="w-24 h-24 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center mx-auto mb-6">

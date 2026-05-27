@@ -86,7 +86,7 @@ export default function AuthPage() {
     return (
       <div className="min-h-screen bg-[#050505]">
         <Header />
-        <main className="pt-24 pb-20">
+        <main className="pt-24 pb-8">
           <div className="max-w-lg mx-auto px-4 text-center">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="bg-white/[0.02] border border-white/10 rounded-2xl p-8">
@@ -129,7 +129,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-[#050505]">
       <Header />
-      <main className="pt-24 pb-20">
+      <main className="pt-24 pb-8">
         <div className="max-w-lg mx-auto px-4">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="bg-white/[0.02] border border-white/10 rounded-2xl p-8">

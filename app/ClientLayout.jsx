@@ -5,7 +5,6 @@ import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistProvider'
 import { AuthProvider } from '@/context/AuthContext'
 import CartDrawer from './components/cart/CartDrawer'
-import MobileNav from './components/MobileNav'
 import Footer from './components/Footer'
 
 export default function ClientLayout({ children }) {
@@ -16,7 +15,6 @@ export default function ClientLayout({ children }) {
           <WishlistProvider>
             {children}
             <CartDrawer />
-            <MobileNav />
             <Footer />
           </WishlistProvider>
         </CartProvider>

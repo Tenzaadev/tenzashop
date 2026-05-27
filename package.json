@@ -26,6 +26,9 @@
     "three": "^0.161.0",
     "three-mesh-bvh": "^0.9.10"
   },
+  "overrides": {
+    "three-mesh-bvh": "^0.9.10"
+  },
   "devDependencies": {
     "@types/node": "25.6.0",
     "autoprefixer": "^10.4.17",

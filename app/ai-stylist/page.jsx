@@ -63,7 +63,7 @@ export default function AIStylistPage() {
   return (
     <div className="min-h-screen bg-[#050505]">
       <Header />
-      <main className="pt-24 pb-20">
+      <main className="pt-24 pb-8">
         <div className="max-w-4xl mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

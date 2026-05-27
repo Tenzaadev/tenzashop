@@ -56,7 +56,7 @@ export default function WishlistPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <Header />
-      <main className="pt-24 pb-20 px-4">
+      <main className="pt-24 pb-8 px-4">
         <div className="max-w-lg mx-auto">
           <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors">
             <ArrowLeft size={20} /> {lang.title}

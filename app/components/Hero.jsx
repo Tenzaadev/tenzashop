@@ -84,7 +84,7 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, type: 'spring', stiffness: 80 }}
         >
-          <h1 className="relative text-7xl md:text-9xl font-black tracking-tighter mb-6 select-none">
+          <h1 className="relative text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter mb-6 select-none">
             <span className="relative text-white">
               TENZA
               <span className="absolute inset-0 text-[#ccff00] animate-pulse opacity-70" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 35%, 0 65%)', left: '-3px' }}>
