@@ -137,7 +137,7 @@ export default function Header() {
                     <Link key={product.id} href={`/product/${product.id}`} onClick={() => setSearchOpen(false)}
                       className="flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl transition-all group">
                       <div className="w-12 h-12 rounded-lg bg-white/10 overflow-hidden flex-shrink-0">
-                        <Image src={product.image} alt={productName(product)} width={48} height={48} className="object-cover w-full h-full" unoptimized />
+                        {product.image && <Image src={product.image} alt={productName(product)} width={48} height={48} className="object-cover w-full h-full" unoptimized />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white font-medium truncate group-hover:text-[#ccff00] transition-colors">{productName(product)}</p>

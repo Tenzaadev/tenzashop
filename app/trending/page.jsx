@@ -75,7 +75,7 @@ export default function TrendingPage() {
                       >
                         <span className="text-3xl font-black text-orange-400/50 w-10">#{i + 1}</span>
                         <div className="w-16 h-16 rounded-xl bg-white/5 overflow-hidden flex-shrink-0">
-                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                          {product.image && <img src={product.image} alt={product.name} className="w-full h-full object-cover" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">{product.name}</p>
@@ -116,7 +116,7 @@ export default function TrendingPage() {
                         className="flex items-center gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-purple-500/20 transition-colors"
                       >
                         <div className="w-16 h-16 rounded-xl bg-white/5 overflow-hidden flex-shrink-0">
-                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                          {product.image && <img src={product.image} alt={product.name} className="w-full h-full object-cover" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">{product.name}</p>

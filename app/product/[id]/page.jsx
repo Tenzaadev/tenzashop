@@ -69,7 +69,7 @@ export default function ProductPage() {
   const relatedProducts = product ? getProducts().filter(p => p.category === product.category && p.id !== product.id).slice(0, 4) : []
   const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
 
-  const allImages = [product.image, product.hoverImage || product.image]
+  const allImages = [product.image, product.hoverImage || product.image].filter(Boolean)
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
