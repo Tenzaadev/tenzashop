@@ -11,7 +11,7 @@ import {
   getStatusIcon, getNextValidStatuses,
   getNotifMessage, itemName, STATUS_LABELS
 } from '@/utils/orders'
-import { subscribeOrders, updateOrder as localUpdateOrder, getAllOrders } from '@/lib/firestore'
+import { subscribeOrders, updateOrder, getAllOrders } from '@/lib/firestore'
 import { processOrderCoins, addNotification, getUserByEmail, COIN_USD_VALUE } from '@/utils/coins'
 import { useI18n } from '@/i18n'
 
