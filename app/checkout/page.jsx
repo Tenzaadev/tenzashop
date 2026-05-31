@@ -14,8 +14,9 @@ import {
   generateOrderId, clearCart, getCart,
   autoFillUserProfile, saveProfileData, sendTelegramNotification
 } from '@/utils/payment'
-import { addOrder } from '@/lib/firestore'
+import { addOrder, updateOrder } from '@/lib/firestore'
 import Header from '../components/Header'
+import PaymentSelector from '../components/PaymentSelector'
 
 const L = {
   uz: {
@@ -218,6 +219,9 @@ export default function CheckoutPage() {
   const [showQR, setShowQR] = useState(false)
   const [qrPaid, setQrPaid] = useState(false)
   const [autoFilled, setAutoFilled] = useState(false)
+  const [paymentCompleted, setPaymentCompleted] = useState(false)
+  const [pendingOrderId, setPendingOrderId] = useState(null)
+  const [pendingOrderRef, setPendingOrderRef] = useState(null)
 
   useEffect(() => {
     const cart = getCart()
@@ -676,45 +680,78 @@ export default function CheckoutPage() {
                 </motion.div>
               )}
 
-              {/* QR code payment */}
-              {remainingAfterCoins > 0 && (
+              {/* Country-based payment */}
+              {remainingAfterCoins > 0 && !paymentCompleted && (
                 <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
                   <div className="p-5 border-b border-white/5">
                     <h3 className="font-bold text-sm flex items-center gap-2">
-                      <QrCode size={16} className="text-[#ccff00]" /> {ll.payWithCard}
+                      <CreditCard size={16} className="text-[#ccff00]" /> {ll.payWithCard}
                     </h3>
                   </div>
-                  <div className="p-5 text-center">
-                    {!showQR ? (
-                      <button onClick={() => setShowQR(true)}
-                        className="px-8 py-4 bg-[#ccff00] text-black font-bold rounded-2xl flex items-center gap-2 mx-auto hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] transition-all text-sm">
-                        <QrCode size={22} /> {ll.scanQR}
-                      </button>
+                  <div className="p-5 space-y-3">
+                    {pendingOrderId ? (
+                      <PaymentSelector
+                        amount={remainingAfterCoins}
+                        orderId={pendingOrderId}
+                        country={form.country}
+                        currency={form.country === 'fi' ? 'eur' : 'usd'}
+                        customerEmail={form.customerEmail}
+                        onPaid={async () => {
+                          setPaymentCompleted(true)
+                          const currentOrder = pendingOrderRef
+                          if (currentOrder) {
+                            await updateOrder(pendingOrderId, {
+                              status: 'paid',
+                              paidAt: new Date().toISOString(),
+                              paymentMethod: form.country === 'fi' ? 'stripe' : form.country === 'uz' ? 'payme' : 'sberbank',
+                              history: [...(currentOrder.history || []), { status: 'paid', time: new Date().toISOString(), note: 'Auto-verified payment' }],
+                            })
+                          }
+                          fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: pendingOrderId, status: 'paid' }) }).catch(() => {})
+                          saveProfileData(form)
+                          clearCart()
+                          localStorage.setItem('tenza_user_email', form.customerEmail)
+                          if (user?.login) {
+                            await addPurchaseBonus(user.login, orderTotal)
+                          }
+                          window.location.href = `/success?order=${pendingOrderId}&email=${encodeURIComponent(form.customerEmail)}&coins=${coinsToUse}&status=paid`
+                        }}
+                        onError={(msg) => console.error('Payment error:', msg)}
+                      />
                     ) : (
-                      <div className="space-y-4">
-                        <div className="flex justify-center">
-                          <div className="bg-white p-3 rounded-xl">
-                            <img src="/images/sber-qr.png" alt="Sberbank QR"
-                              className="w-44 h-44 object-contain" />
-                          </div>
-                        </div>
-                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 text-left max-w-xs mx-auto w-full">
-                          <p className="text-gray-500 text-xs mb-1">{t('recipient') || 'To\'lov qabul qiluvchi'}:</p>
-                          <p className="text-white text-sm font-medium">Рузматов Жавохирбек Умидбек угли</p>
-                          <p className="text-gray-500 text-xs">Сбербанк</p>
-                        </div>
-                        <p className="text-gray-300 font-medium">${remainingAfterCoins.toFixed(2)} {ll.payAmount}</p>
-                        <p className="text-gray-600 text-xs">{ll.scanSber}</p>
-                        <label className="flex items-start gap-3 cursor-pointer max-w-xs mx-auto p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all">
-                          <input type="checkbox" checked={qrPaid} onChange={e => setQrPaid(e.target.checked)}
-                            className="mt-0.5 accent-[#ccff00] w-4 h-4 flex-shrink-0" />
-                          <span className="text-gray-300 text-xs leading-relaxed text-left">
-                            Men <strong className="text-white">Жавохирбек Рузматов</strong>ga Sberbank orqali <strong className="text-[#ccff00]">${remainingAfterCoins.toFixed(2)}</strong> to'lovni amalga oshirdim
-                          </span>
-                        </label>
-                      </div>
+                      <button onClick={async () => {
+                        const orderId = generateOrderId()
+                        const order = {
+                          id: orderId, orderId, customerName: form.customerName,
+                          fullName: form.customerName, email: form.customerEmail, phone: form.customerPhone,
+                          country: form.country, city: form.city, address: form.address,
+                          postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
+                          items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
+                          total: orderTotal, paymentMethod: 'card',
+                          coinsUsed: useCoins ? coinsToUse : 0, coinsEarned: 0,
+                          remainingAmount: remainingAfterCoins, login: user?.login || form.customerEmail,
+                          status: 'pending_payment',
+                          history: [{ status: 'pending_payment', time: new Date().toISOString() }],
+                          createdAt: new Date().toISOString(),
+                        }
+                        setPendingOrderId(orderId)
+                        setPendingOrderRef(order)
+                        await addOrder(order)
+                        fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
+                        sendTelegramNotification(order)
+                      }}
+                        className="w-full py-4 bg-[#ccff00] text-black font-bold rounded-2xl text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] transition-all flex items-center justify-center gap-2">
+                        <CreditCard size={20} /> {ll.payWithCard}
+                      </button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {paymentCompleted && (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center">
+                  <p className="text-green-400 font-bold text-lg">{ll.paidReceived}</p>
+                  <p className="text-gray-400 text-sm mt-1">{ll.adminVerify}</p>
                 </div>
               )}
 
@@ -743,7 +780,7 @@ export default function CheckoutPage() {
                   className="flex-1 py-4 border border-white/10 text-gray-400 font-bold rounded-2xl hover:bg-white/5 hover:text-white transition-all text-sm">
                   &larr; {ll.back}
                 </button>
-                <button onClick={handlePlaceOrder} disabled={(remainingAfterCoins > 0 && !qrPaid) || submitting}
+                <button onClick={handlePlaceOrder} disabled={(remainingAfterCoins > 0 && !paymentCompleted) || submitting}
                   className="flex-[2] py-4 bg-[#ccff00] text-black font-bold rounded-2xl disabled:opacity-30 text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] transition-all flex items-center justify-center gap-2">
                   {submitting ? (
                     <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> ...</span>

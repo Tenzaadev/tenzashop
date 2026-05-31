@@ -114,6 +114,7 @@ function SuccessContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order') || 'UNKNOWN'
   const userEmail = searchParams.get('email') || ''
+  const sessionId = searchParams.get('session_id') || ''
   const [order, setOrder] = useState(null)
 
   useEffect(() => {
@@ -125,7 +126,28 @@ function SuccessContent() {
         if (found) setOrder(found)
       } catch {}
     })()
-  }, [orderId, userEmail])
+    if (sessionId && orderId !== 'UNKNOWN') {
+      ;(async () => {
+        try {
+          const res = await fetch(`/api/stripe-payment?sessionId=${sessionId}`)
+          const data = await res.json()
+          if (data.paid) {
+            const orders = await getAllOrders()
+            const found = orders.find(o => (o.id || o.orderId) === orderId)
+            if (found) {
+              found.status = 'paid'
+              found.paidAt = new Date().toISOString()
+              found.paymentMethod = 'stripe'
+              found.history = [...(found.history || []), { status: 'paid', time: new Date().toISOString(), note: 'Stripe checkout verified' }]
+              localStorage.setItem('tenza_orders', JSON.stringify(orders))
+              fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: orderId, status: 'paid' }) }).catch(() => {})
+              setOrder({ ...found })
+            }
+          }
+        } catch {}
+      })()
+    }
+  }, [orderId, userEmail, sessionId])
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 py-10">
