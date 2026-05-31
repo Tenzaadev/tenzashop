@@ -38,6 +38,7 @@ const L = {
     welcomeBack: 'Xush kelibsiz', autoFilled: 'Ma\'lumotlaringiz avtomatik to\'ldirildi',
     totalPay: "To'lov summasi", items: 'mahsulot',
     payme: 'Uzcard / Humo (Payme)', sberbank: 'Сбербанк QR', tbank: 'Т-Банк',
+    paynow: "To'lov qilish",
   },
   ru: {
     title: 'Заказ', back: 'Назад', continue: 'Продолжить',
@@ -60,6 +61,7 @@ const L = {
     welcomeBack: 'С возвращением', autoFilled: 'Данные заполнены автоматически',
     totalPay: 'Сумма к оплате', items: 'товар(а)',
     payme: 'Uzcard / Humo (Payme)', sberbank: 'Сбербанк QR', tbank: 'Т-Банк',
+    paynow: 'Оплатить',
   },
   en: {
     title: 'Checkout', back: 'Back', continue: 'Continue',
@@ -82,6 +84,7 @@ const L = {
     welcomeBack: 'Welcome back', autoFilled: 'Details auto-filled',
     totalPay: 'Total to pay', items: 'items',
     payme: 'Uzcard / Humo (Payme)', sberbank: 'Sberbank QR', tbank: 'T-Bank',
+    paynow: 'Pay Now',
   },
   fi: {
     title: 'Kassa', back: 'Takaisin', continue: 'Jatka',
@@ -104,6 +107,7 @@ const L = {
     welcomeBack: 'Tervetuloa', autoFilled: 'Tiedot täytetty automaattisesti',
     totalPay: 'Maksettava yhteensä', items: 'tuotetta',
     payme: 'Uzcard / Humo (Payme)', sberbank: 'Sberbank QR', tbank: 'T-Bank',
+    paynow: 'Maksa nyt',
   },
   sv: {
     title: 'Kassa', back: 'Tillbaka', continue: 'Fortsätt',
@@ -126,6 +130,7 @@ const L = {
     welcomeBack: 'Välkommen tillbaka', autoFilled: 'Uppgifter ifyllda automatiskt',
     totalPay: 'Totalt att betala', items: 'produkter',
     payme: 'Uzcard / Humo (Payme)', sberbank: 'Sberbank QR', tbank: 'T-Bank',
+    paynow: 'Betala nu',
   },
 }
 
@@ -599,81 +604,26 @@ export default function CheckoutPage() {
                           <span className="text-[#ccff00] text-xl font-bold">${orderTotal.toFixed(2)}</span>
                         </div>
 
-                        {/* Finland — Stripe */}
-                        {form.country === 'fi' && (
-                          <>
-                            <button onClick={handleStripePayment} disabled={stripeLoading}
-                              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-[#635BFF]/10 hover:bg-[#635BFF]/20 transition-all disabled:opacity-40">
-                              <span className="text-2xl">💳</span>
-                              <div className="flex-1 text-left">
-                                <p className="text-white font-bold text-sm">Visa / Mastercard</p>
-                                <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
-                              </div>
-                              {stripeLoading ? (
-                                <Loader2 size={18} className="animate-spin text-[#635BFF]" />
-                              ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-[#635BFF]" />
-                              )}
-                            </button>
-                            {stripeError && (
-                              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
-                                <p className="text-red-300 text-xs">{stripeError}</p>
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                        {/* Uzbekistan — Payme */}
-                        {form.country === 'uz' && (
-                          <button onClick={handlePaymePayment} disabled={stripeLoading}
-                            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all disabled:opacity-40">
-                            <span className="text-2xl">💳</span>
-                            <div className="flex-1 text-left">
-                              <p className="text-white font-bold text-sm">{ll.payme}</p>
-                              <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
-                            </div>
-                            {stripeLoading ? (
-                              <Loader2 size={18} className="animate-spin text-[#ccff00]" />
-                            ) : (
-                              <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
-                            )}
-                          </button>
-                        )}
-
-                        {/* Russia — Sberbank */}
-                        {form.country === 'ru' && (
-                          <div className="space-y-3">
-                            <button onClick={() => handleSberPayment('sberbank')} disabled={stripeLoading}
-                              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all disabled:opacity-40">
-                              <span className="text-2xl">📱</span>
-                              <div className="flex-1 text-left">
-                                <p className="text-white font-bold text-sm">{ll.sberbank}</p>
-                                <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
-                              </div>
-                              {stripeLoading ? (
-                                <Loader2 size={18} className="animate-spin text-[#ccff00]" />
-                              ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
-                              )}
-                            </button>
-                            <button onClick={() => handleSberPayment('tbank')} disabled={stripeLoading}
-                              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all disabled:opacity-40">
-                              <span className="text-2xl">📱</span>
-                              <div className="flex-1 text-left">
-                                <p className="text-white font-bold text-sm">{ll.tbank}</p>
-                                <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
-                              </div>
-                              {stripeLoading ? (
-                                <Loader2 size={18} className="animate-spin text-[#ccff00]" />
-                              ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
-                              )}
-                            </button>
+                        {stripeError && (
+                          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+                            <p className="text-red-300 text-xs">{stripeError}</p>
                           </div>
                         )}
 
-                        {/* Other countries */}
-                        {!['fi', 'uz', 'ru'].includes(form.country) && (
+                        {['fi', 'uz', 'ru'].includes(form.country) ? (
+                          <button onClick={() => {
+                            if (form.country === 'fi') handleStripePayment()
+                            else if (form.country === 'uz') handlePaymePayment()
+                            else if (form.country === 'ru') handleSberPayment('sberbank')
+                          }} disabled={stripeLoading}
+                            className="w-full h-12 bg-[#ccff00] text-black font-semibold rounded-xl text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.2)] transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-50">
+                            {stripeLoading ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <><span>{ll.paynow}</span> <span className="opacity-70">— ${orderTotal.toFixed(2)}</span></>
+                            )}
+                          </button>
+                        ) : (
                           <div className="bg-yellow-500/[0.04] border border-yellow-500/15 rounded-xl p-4 text-center">
                             <p className="text-yellow-200/80 text-xs">{ll.telegramContact}</p>
                           </div>
