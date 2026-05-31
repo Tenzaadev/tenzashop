@@ -3,13 +3,11 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
-  ArrowLeft, CreditCard, Coins, QrCode,
-  Check, Shield, User, MapPin, Package,
-  Truck, ChevronRight, Copy, Info, AlertCircle
+  ArrowLeft, CreditCard, Check, Shield, User, MapPin, Package,
+  Truck, ChevronRight, AlertCircle, ShoppingBag, Lock
 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/context/AuthContext'
-import { getUserCoins, calculateCoinReward, COIN_USD_VALUE } from '@/utils/coins'
 import {
   generateOrderId, clearCart, getCart,
   autoFillUserProfile, saveProfileData, sendTelegramNotification
@@ -20,190 +18,134 @@ import PaymentSelector from '../components/PaymentSelector'
 
 const L = {
   uz: {
-    title: 'Buyurtmani rasmiylashtirish', step1: "Mijoz ma'lumotlari",
-    step2: 'To\'lov usuli', step3: 'Tasdiqlash', back: 'Orqaga',
-    continue: 'Davom etish', placeOrder: 'Buyurtmani tasdiqlash',
+    title: 'Buyurtma', back: 'Orqaga', continue: 'Davom etish',
     fullName: 'Ism', email: 'Email', phone: 'Telefon',
     country: 'Davlat', city: 'Shahar', address: 'Manzil',
     postalCode: 'Pochta indeksi', floor: 'Qavat', doorCode: 'Eshik kodi',
     delivery: 'Yetkazib berish', standard: 'Standart', express: 'Express',
     standardEta: '20-30 kun', expressEta: '10-15 kun',
     standardPrice: 'Bepul', expressPrice: '$10',
-    paymentMethod: 'To\'lov usuli', cardFull: 'Karta orqali to\'lash',
-    coinsFull: 'Coin orqali to\'lash', combined: 'Coin + Karta',
-    payWithCard: 'Karta orqali to\'lang', remaining: 'Qolgan to\'lov',
-    confirmPay: 'To\'ladim ✅', scanQR: 'QR kodni ko\'rsatish',
-    total: 'Jami', order: 'Buyurtma', products: 'Mahsulotlar',
-    summary: 'Buyurtma xulosasi', coinUsed: 'Ishlatilgan coin',
-    coinsEarned: 'Qo\'shilgan coin', welcome: 'Xush kelibsiz',
-    autoFilled: 'Ma\'lumotlaringiz avtomatik to\'ldirildi',
-    orderPlaced: 'Buyurtma qabul qilindi!', security: 'To\'lovlar xavfsiz shifrlangan',
-    cartEmpty: 'Savat bo\'sh', continueShopping: 'Xaridni davom ettirish',
-    required: 'Majburiy maydon', invalidEmail: 'Noto\'g\'ri email',
-    invalidPhone: 'Noto\'g\'ri telefon', selected: 'Tanlandi',
-    payAmount: 'miqdorida to\'lov qiling', scanSber: 'Sberbank ilovasi orqali skanerlang',
-    paidReceived: 'To\'lov qabul qilindi!', adminVerify: 'Admin tekshirib tasdiqlaydi',
-    useCoin: 'Coin ishlatish', coinBalance: 'Balans',
-    howManyCoins: 'Nechta coin ishlatmaysiz?', orderTotal: 'Buyurtma summasi',
-    discount: 'Coin chegirmasi', cardPay: 'Karta orqali to\'lov',
-    welcomeBack: 'Xush kelibsiz', confirmOrder: 'Buyurtmani tasdiqlash',
-    purchaseReward: "Xaridingiz uchun sovg'a", bonusCoins: 'Bonus coin',
-    afterPurchase: "To'lovdan keyingi balans", deliveryFree: 'Bepul',
-    coinsUsedBreakdown: 'Coin orqali', cardPayBreakdown: 'Karta orqali',
-    totalPay: 'Jami to\'lov',
-    telegramContact: 'Boshqa davlatlarga yetkazish uchun Telegramdan @tenza_me ga yoki podderjkaga yozing',
+    customerInfo: "Ma'lumotlar", deliveryAddr: 'Manzil',
+    paymentMethod: "To'lov", summary: 'Buyurtma',
+    payWithCard: "To'lovni boshlash",
+    paidReceived: "To'lov qabul qilindi!",
+    adminVerify: 'Admin tekshirib tasdiqlaydi',
+    telegramContact: 'Boshqa davlatlarga yetkazish uchun Telegramdan @tenza_me ga yozing',
     telegramFooter: 'Boshqa davlatlarga yetkazish uchun Telegramdan bog\'laning',
+    cartEmpty: 'Savat bo\'sh', continueShopping: 'Xaridni davom ettirish',
+    required: 'Majburiy', invalidEmail: 'Noto\'g\'ri email',
+    invalidPhone: 'Noto\'g\'ri telefon',
+    deliveryFree: 'Bepul', orderAmount: 'Jami',
+    yourOrder: 'Sizning buyurtmangiz', security: 'To\'lovlar xavfsiz shifrlangan',
+    welcomeBack: 'Xush kelibsiz', autoFilled: 'Ma\'lumotlaringiz avtomatik to\'ldirildi',
+    totalPay: 'To\'lov summasi', chooseMethod: 'To\'lov usulini tanlang',
+    items: 'mahsulot',
   },
   ru: {
-    title: 'Оформление заказа', step1: 'Данные клиента',
-    step2: 'Способ оплаты', step3: 'Подтверждение', back: 'Назад',
-    continue: 'Продолжить', placeOrder: 'Подтвердить заказ',
+    title: 'Заказ', back: 'Назад', continue: 'Продолжить',
     fullName: 'Имя', email: 'Email', phone: 'Телефон',
     country: 'Страна', city: 'Город', address: 'Адрес',
     postalCode: 'Почтовый индекс', floor: 'Этаж', doorCode: 'Код двери',
     delivery: 'Доставка', standard: 'Стандартная', express: 'Экспресс',
     standardEta: '20-30 дней', expressEta: '10-15 дней',
     standardPrice: 'Бесплатно', expressPrice: '$10',
-    paymentMethod: 'Способ оплаты', cardFull: 'Оплата картой',
-    coinsFull: 'Оплата коинами', combined: 'Монеты + Карта',
-    payWithCard: 'Оплатите картой', remaining: 'Остаток к оплате',
-    confirmPay: 'Я оплатил ✅', scanQR: 'Показать QR код',
-    total: 'Итого', order: 'Заказ', products: 'Товары',
-    summary: 'Итого по заказу', coinUsed: 'Использовано монет',
-    coinsEarned: 'Начислено монет', welcome: 'Добро пожаловать',
-    autoFilled: 'Ваши данные заполнены автоматически',
-    orderPlaced: 'Заказ принят!', security: 'Платежи защищены шифрованием',
-    cartEmpty: 'Корзина пуста', continueShopping: 'Продолжить покупки',
-    required: 'Обязательное поле', invalidEmail: 'Неверный email',
-    invalidPhone: 'Неверный телефон', selected: 'Выбрано',
-    payAmount: 'оплатите сумму', scanSber: 'Сканируйте через приложение Сбербанк',
-    paidReceived: 'Платёж получен!', adminVerify: 'Администратор проверит и подтвердит',
-    useCoin: 'Использовать монеты', coinBalance: 'Баланс',
-    howManyCoins: 'Сколько монет использовать?', orderTotal: 'Сумма заказа',
-    discount: 'Скидка монетами', cardPay: 'Оплата картой',
-    welcomeBack: 'С возвращением', confirmOrder: 'Подтвердить заказ',
-    purchaseReward: 'Подарок за покупку', bonusCoins: 'Бонусные монеты',
-    afterPurchase: 'Баланс после покупки', deliveryFree: 'Бесплатно',
-    coinsUsedBreakdown: 'Монетами', cardPayBreakdown: 'Картой',
-    totalPay: 'Итого к оплате',
-    telegramContact: 'Для доставки в другие страны напишите в Telegram @tenza_me или в поддержку',
+    customerInfo: 'Данные', deliveryAddr: 'Адрес',
+    paymentMethod: 'Оплата', summary: 'Заказ',
+    payWithCard: 'Начать оплату',
+    paidReceived: 'Платёж получен!',
+    adminVerify: 'Администратор проверит и подтвердит',
+    telegramContact: 'Для доставки в другие страны напишите в Telegram @tenza_me',
     telegramFooter: 'Для доставки в другие страны свяжитесь через Telegram',
+    cartEmpty: 'Корзина пуста', continueShopping: 'Продолжить покупки',
+    required: 'Обязательно', invalidEmail: 'Неверный email',
+    invalidPhone: 'Неверный телефон',
+    deliveryFree: 'Бесплатно', orderAmount: 'Итого',
+    yourOrder: 'Ваш заказ', security: 'Платежи защищены шифрованием',
+    welcomeBack: 'С возвращением', autoFilled: 'Данные заполнены автоматически',
+    totalPay: 'Сумма к оплате', chooseMethod: 'Выберите способ оплаты',
+    items: 'товар(а)',
   },
   en: {
-    title: 'Checkout', step1: 'Customer Details',
-    step2: 'Payment Method', step3: 'Confirmation', back: 'Back',
-    continue: 'Continue', placeOrder: 'Confirm Order',
+    title: 'Checkout', back: 'Back', continue: 'Continue',
     fullName: 'Full Name', email: 'Email', phone: 'Phone',
     country: 'Country', city: 'City', address: 'Address',
     postalCode: 'Postal Code', floor: 'Floor', doorCode: 'Door Code',
     delivery: 'Delivery', standard: 'Standard', express: 'Express',
     standardEta: '20-30 days', expressEta: '10-15 days',
     standardPrice: 'Free', expressPrice: '$10',
-    paymentMethod: 'Payment Method', cardFull: 'Pay by card',
-    coinsFull: 'Pay with coins', combined: 'Coins + Card',
-    payWithCard: 'Pay with card', remaining: 'Remaining',
-    confirmPay: 'I paid ✅', scanQR: 'Show QR code',
-    total: 'Total', order: 'Order', products: 'Products',
-    summary: 'Order Summary', coinUsed: 'Coins used',
-    coinsEarned: 'Coins earned', welcome: 'Welcome',
-    autoFilled: 'Your details were auto-filled',
-    orderPlaced: 'Order received!', security: 'Payments are securely encrypted',
-    cartEmpty: 'Cart is empty', continueShopping: 'Continue Shopping',
-    required: 'Required field', invalidEmail: 'Invalid email',
-    invalidPhone: 'Invalid phone', selected: 'Selected',
-    payAmount: 'Pay the amount of', scanSber: 'Scan with Sberbank app',
-    paidReceived: 'Payment received!', adminVerify: 'Admin will verify and confirm',
-    useCoin: 'Use coins', coinBalance: 'Balance',
-    howManyCoins: 'How many coins to use?', orderTotal: 'Order total',
-    discount: 'Coin discount', cardPay: 'Card payment',
-    welcomeBack: 'Welcome back', confirmOrder: 'Confirm order',
-    purchaseReward: 'Purchase reward', bonusCoins: 'Bonus coins',
-    afterPurchase: 'Balance after purchase', deliveryFree: 'Free',
-    coinsUsedBreakdown: 'By coins', cardPayBreakdown: 'By card',
-    totalPay: 'Total to pay',
-    telegramContact: 'For delivery to other countries, contact @tenza_me on Telegram or support',
+    customerInfo: 'Details', deliveryAddr: 'Address',
+    paymentMethod: 'Payment', summary: 'Order',
+    payWithCard: 'Pay Now',
+    paidReceived: 'Payment received!',
+    adminVerify: 'Admin will verify and confirm',
+    telegramContact: 'For delivery to other countries, contact @tenza_me on Telegram',
     telegramFooter: 'For delivery to other countries, contact via Telegram',
+    cartEmpty: 'Cart is empty', continueShopping: 'Continue Shopping',
+    required: 'Required', invalidEmail: 'Invalid email',
+    invalidPhone: 'Invalid phone',
+    deliveryFree: 'Free', orderAmount: 'Total',
+    yourOrder: 'Your Order', security: 'Payments are securely encrypted',
+    welcomeBack: 'Welcome back', autoFilled: 'Details auto-filled',
+    totalPay: 'Total to pay', chooseMethod: 'Choose payment method',
+    items: 'items',
   },
   fi: {
-    title: 'Kassa', step1: 'Asiakastiedot',
-    step2: 'Maksutapa', step3: 'Vahvistus', back: 'Takaisin',
-    continue: 'Jatka', placeOrder: 'Vahvista tilaus',
+    title: 'Kassa', back: 'Takaisin', continue: 'Jatka',
     fullName: 'Nimi', email: 'Sähköposti', phone: 'Puhelin',
     country: 'Maa', city: 'Kaupunki', address: 'Osoite',
     postalCode: 'Postinumero', floor: 'Kerros', doorCode: 'Ovikoodi',
     delivery: 'Toimitus', standard: 'Normaali', express: 'Pikatoimitus',
     standardEta: '20-30 päivää', expressEta: '10-15 päivää',
     standardPrice: 'Ilmainen', expressPrice: '$10',
-    paymentMethod: 'Maksutapa', cardFull: 'Maksa kortilla',
-    coinsFull: 'Maksa kolikoilla', combined: 'Kolikot + Kortti',
-    payWithCard: 'Maksa kortilla', remaining: 'Jäljellä',
-    confirmPay: 'Maksoin ✅', scanQR: 'Näytä QR-koodi',
-    total: 'Yhteensä', order: 'Tilaus', products: 'Tuotteet',
-    summary: 'Tilausyhteenveto', coinUsed: 'Käytetyt kolikot',
-    coinsEarned: 'Ansaitut kolikot', welcome: 'Tervetuloa',
-    autoFilled: 'Tietosi täytettiin automaattisesti',
-    orderPlaced: 'Tilaus vastaanotettu!', security: 'Maksut on suojattu salauksella',
+    customerInfo: 'Tiedot', deliveryAddr: 'Osoite',
+    paymentMethod: 'Maksu', summary: 'Tilaus',
+    payWithCard: 'Maksa nyt',
+    paidReceived: 'Maksu vastaanotettu!',
+    adminVerify: 'Ylläpitäjä vahvistaa',
+    telegramContact: 'Ota yhteyttä Telegramissa @tenza_me',
+    telegramFooter: 'Ota yhteyttä Telegramin kautta',
     cartEmpty: 'Ostoskori on tyhjä', continueShopping: 'Jatka ostoksia',
-    required: 'Pakollinen kenttä', invalidEmail: 'Virheellinen sähköposti',
-    invalidPhone: 'Virheellinen puhelin', selected: 'Valittu',
-    payAmount: 'Maksa summa', scanSber: 'Skannaa Sberbank-sovelluksella',
-    paidReceived: 'Maksu vastaanotettu!', adminVerify: 'Ylläpitäjä vahvistaa',
-    useCoin: 'Käytä kolikoita', coinBalance: 'Saldo',
-    howManyCoins: 'Kuinka monta kolikkoa käytetään?', orderTotal: 'Tilauksen summa',
-    discount: 'Kolikkoalennus', cardPay: 'Korttimaksu',
-    welcomeBack: 'Tervetuloa takaisin', confirmOrder: 'Vahvista tilaus',
-    purchaseReward: 'Ostolahja', bonusCoins: 'Bonuskolikot',
-    afterPurchase: 'Saldo oston jälkeen', deliveryFree: 'Ilmainen',
-    coinsUsedBreakdown: 'Kolikoilla', cardPayBreakdown: 'Kortilla',
-    totalPay: 'Maksettava yhteensä',
-    telegramContact: 'Ota yhteyttä Telegramissa @tenza_me tai tukeen toimituksista muihin maihin',
-    telegramFooter: 'Ota yhteyttä Telegramin kautta toimituksista muihin maihin',
+    required: 'Pakollinen', invalidEmail: 'Virheellinen sähköposti',
+    invalidPhone: 'Virheellinen puhelin',
+    deliveryFree: 'Ilmainen', orderAmount: 'Yhteensä',
+    yourOrder: 'Tilauksesi', security: 'Maksut on suojattu',
+    welcomeBack: 'Tervetuloa', autoFilled: 'Tiedot täytetty automaattisesti',
+    totalPay: 'Maksettava yhteensä', chooseMethod: 'Valitse maksutapa',
+    items: 'tuotetta',
   },
   sv: {
-    title: 'Kassa', step1: 'Kunduppgifter',
-    step2: 'Betalningsmetod', step3: 'Bekräftelse', back: 'Tillbaka',
-    continue: 'Fortsätt', placeOrder: 'Bekräfta beställning',
+    title: 'Kassa', back: 'Tillbaka', continue: 'Fortsätt',
     fullName: 'Namn', email: 'E-post', phone: 'Telefon',
     country: 'Land', city: 'Stad', address: 'Adress',
     postalCode: 'Postnummer', floor: 'Våning', doorCode: 'Portkod',
     delivery: 'Leverans', standard: 'Standard', express: 'Express',
     standardEta: '20-30 dagar', expressEta: '10-15 dagar',
     standardPrice: 'Gratis', expressPrice: '$10',
-    paymentMethod: 'Betalningsmetod', cardFull: 'Betala med kort',
-    coinsFull: 'Betala med mynt', combined: 'Mynt + Kort',
-    payWithCard: 'Betala med kort', remaining: 'Återstående',
-    confirmPay: 'Jag betalade ✅', scanQR: 'Visa QR-kod',
-    total: 'Totalt', order: 'Beställning', products: 'Produkter',
-    summary: 'Ordersammanfattning', coinUsed: 'Använda mynt',
-    coinsEarned: 'Förtjänade mynt', welcome: 'Välkommen',
-    autoFilled: 'Dina uppgifter fylldes i automatiskt',
-    orderPlaced: 'Beställning mottagen!', security: 'Betalningar är krypterade',
+    customerInfo: 'Uppgifter', deliveryAddr: 'Adress',
+    paymentMethod: 'Betalning', summary: 'Beställning',
+    payWithCard: 'Betala nu',
+    paidReceived: 'Betalning mottagen!',
+    adminVerify: 'Admin verifierar',
+    telegramContact: 'Kontakta @tenza_me på Telegram',
+    telegramFooter: 'Kontakta via Telegram',
     cartEmpty: 'Varukorgen är tom', continueShopping: 'Fortsätt handla',
-    required: 'Obligatoriskt fält', invalidEmail: 'Ogiltig e-post',
-    invalidPhone: 'Ogiltig telefon', selected: 'Vald',
-    payAmount: 'Betala beloppet', scanSber: 'Skanna med Sberbank-appen',
-    paidReceived: 'Betalning mottagen!', adminVerify: 'Admin verifierar och bekräftar',
-    useCoin: 'Använd mynt', coinBalance: 'Saldo',
-    howManyCoins: 'Hur många mynt vill du använda?', orderTotal: 'Ordersumma',
-    discount: 'Myntrabatt', cardPay: 'Kortbetalning',
-    welcomeBack: 'Välkommen tillbaka', confirmOrder: 'Bekräfta beställning',
-    purchaseReward: 'Köpgåva', bonusCoins: 'Bonusmynt',
-    afterPurchase: 'Saldo efter köp', deliveryFree: 'Gratis',
-    coinsUsedBreakdown: 'Med mynt', cardPayBreakdown: 'Med kort',
-    totalPay: 'Totalt att betala',
-    telegramContact: 'Kontakta @tenza_me på Telegram eller support för leverans till andra länder',
-    telegramFooter: 'Kontakta via Telegram för leverans till andra länder',
+    required: 'Obligatoriskt', invalidEmail: 'Ogiltig e-post',
+    invalidPhone: 'Ogiltig telefon',
+    deliveryFree: 'Gratis', orderAmount: 'Totalt',
+    yourOrder: 'Din beställning', security: 'Betalningar är krypterade',
+    welcomeBack: 'Välkommen tillbaka', autoFilled: 'Uppgifter ifyllda automatiskt',
+    totalPay: 'Totalt att betala', chooseMethod: 'Välj betalningsmetod',
+    items: 'produkter',
   },
 }
 
 export default function CheckoutPage() {
-  const { locale, t } = useI18n()
+  const { locale } = useI18n()
   const { user, addPurchaseBonus } = useAuth()
   const ll = L[locale] || L.en
 
   const [step, setStep] = useState(1)
   const [cartItems, setCartItems] = useState([])
-  const [userCoins, setUserCoins] = useState(0)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
@@ -213,42 +155,26 @@ export default function CheckoutPage() {
     floor: '', doorCode: '', delivery: 'standard',
   })
 
-  const [paymentMethod, setPaymentMethod] = useState('full')
-  const [useCoins, setUseCoins] = useState(false)
-  const [coinsToUse, setCoinsToUse] = useState(0)
-  const [showQR, setShowQR] = useState(false)
-  const [qrPaid, setQrPaid] = useState(false)
-  const [autoFilled, setAutoFilled] = useState(false)
   const [paymentCompleted, setPaymentCompleted] = useState(false)
   const [pendingOrderId, setPendingOrderId] = useState(null)
   const [pendingOrderRef, setPendingOrderRef] = useState(null)
+  const [autoFilled, setAutoFilled] = useState(false)
 
   useEffect(() => {
     const cart = getCart()
     setCartItems(cart)
-    const coins = getUserCoins(user?.email || user?.login) || 0
-    setUserCoins(coins)
     const profile = autoFillUserProfile()
     if (profile.customerName || profile.customerEmail) {
       setForm(f => ({ ...f, ...profile }))
       setAutoFilled(true)
     }
-  }, [user])
+  }, [])
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const deliveryCost = form.delivery === 'express' ? 10 : 0
   const orderTotal = subtotal + deliveryCost
-  const remainingAfterCoins = Math.max(0, orderTotal - (coinsToUse * COIN_USD_VALUE))
-  const maxCoins = Math.min(userCoins, Math.ceil(orderTotal / COIN_USD_VALUE))
   const isFinland = form.country === 'fi'
-  const bonus = calculateCoinReward(orderTotal)
-  const coinEquiv = (c) => {
-    const u = (c * 0.005).toFixed(2)
-    const s = Math.round(c * 50).toLocaleString()
-    const r = Math.round(c * 0.45)
-    return `~$${u} / ~${s} so'm / ~${r}₽`
-  }
-  const coinsAfterPurchase = userCoins - coinsToUse + bonus
+  const itemCount = cartItems.reduce((sum, i) => sum + i.quantity, 0)
 
   const validateStep1 = () => {
     const e = {}
@@ -263,50 +189,31 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = async () => {
-    if (submitting) return
+    if (submitting || pendingOrderId) return
     setSubmitting(true)
 
     const orderId = generateOrderId()
     const order = {
-      id: orderId,
-      orderId,
-      customerName: form.customerName,
-      fullName: form.customerName,
-      email: form.customerEmail,
-      phone: form.customerPhone,
-      country: form.country,
-      city: form.city,
-      address: form.address,
-      postalCode: form.postalCode,
-      floor: form.floor,
-      doorCode: form.doorCode,
-      items: cartItems,
-      subtotal,
-      delivery: form.delivery,
-      deliveryCost,
-      total: orderTotal,
-      paymentMethod: useCoins ? (remainingAfterCoins <= 0 ? 'coins' : 'combined') : 'full',
-      coinsUsed: useCoins ? coinsToUse : 0,
-      coinsEarned: 0,
-      remainingAmount: remainingAfterCoins,
+      id: orderId, orderId,
+      customerName: form.customerName, fullName: form.customerName,
+      email: form.customerEmail, phone: form.customerPhone,
+      country: form.country, city: form.city, address: form.address,
+      postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
+      items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
+      total: orderTotal, paymentMethod: 'card',
+      coinsUsed: 0, coinsEarned: 0,
+      remainingAmount: orderTotal,
       login: user?.login || form.customerEmail,
-      status: 'pending_verification',
-      history: [{ status: 'pending_verification', time: new Date().toISOString() }],
+      status: 'pending_payment',
+      history: [{ status: 'pending_payment', time: new Date().toISOString() }],
       createdAt: new Date().toISOString(),
     }
-
+    setPendingOrderId(orderId)
+    setPendingOrderRef(order)
     await addOrder(order)
     fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
-    saveProfileData(form)
-    clearCart()
-    localStorage.setItem('tenza_user_email', form.customerEmail)
     sendTelegramNotification(order)
-
-    if (user?.login) {
-      await addPurchaseBonus(user.login, order.total)
-    }
-
-    window.location.href = `/success?order=${orderId}&email=${encodeURIComponent(form.customerEmail)}&coins=0&status=pending_verification`
+    setSubmitting(false)
   }
 
   if (cartItems.length === 0) {
@@ -314,9 +221,14 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-[#050505]">
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh] pt-20">
-          <p className="text-6xl mb-4">🛒</p>
-          <p className="text-white text-2xl font-bold mb-4">{ll.cartEmpty}</p>
-          <Link href="/" className="px-6 py-3 bg-[#ccff00] text-black font-bold rounded-full">{ll.continueShopping}</Link>
+          <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center mb-6">
+            <ShoppingBag size={32} className="text-gray-500" />
+          </div>
+          <p className="text-white text-xl font-bold mb-2">{ll.cartEmpty}</p>
+          <p className="text-gray-500 text-sm mb-6">¯\_(ツ)_/¯</p>
+          <Link href="/" className="px-8 py-3.5 bg-[#ccff00] text-black font-bold rounded-xl hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] transition-all">
+            {ll.continueShopping}
+          </Link>
         </div>
       </div>
     )
@@ -324,470 +236,343 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/cart" className="text-gray-400 hover:text-white flex items-center gap-2">
-            <ArrowLeft size={20} />
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-2xl border-b border-white/[0.04]">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/cart" className="w-10 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-all">
+            <ArrowLeft size={18} className="text-gray-400" />
           </Link>
-          <h1 className="font-bold text-sm lg:text-base">{ll.title}</h1>
+          <h1 className="font-semibold text-sm tracking-wide">{ll.title}</h1>
           <div className="flex items-center gap-1.5">
-            {[1, 2, 3].map(s => (
-              <div key={s} className={`w-2.5 h-2.5 rounded-full transition-all ${step >= s ? 'bg-[#ccff00] scale-110' : 'bg-gray-700'}`} />
+            {[1, 2].map(s => (
+              <div key={s} className={`w-2 h-2 rounded-full transition-all duration-500 ${step >= s ? 'bg-[#ccff00]' : 'bg-white/10'}`} />
             ))}
           </div>
         </div>
       </div>
 
-      <div className="pt-20 pb-10 px-4 max-w-4xl mx-auto">
-        {/* Step progress */}
-        <div className="flex items-center gap-2 mb-8 text-sm">
+      <div className="pt-20 pb-16 px-4 max-w-5xl mx-auto">
+        {/* Step indicator */}
+        <div className="flex items-center gap-3 mb-10 pt-4">
           {[
-            { num: 1, label: ll.step1, icon: '👤' },
-            { num: 2, label: ll.step2, icon: '💳' },
-            { num: 3, label: ll.step3, icon: '✅' },
+            { num: 1, label: ll.customerInfo },
+            { num: 2, label: ll.paymentMethod },
           ].map(s => (
-            <div key={s.num} className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                step >= s.num ? 'bg-[#ccff00]/10 text-[#ccff00]' : 'text-gray-500'
+            <div key={s.num} className="flex items-center gap-3">
+              <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 ${
+                step >= s.num ? 'bg-[#ccff00]/10 text-[#ccff00]' : 'text-gray-600'
               }`}>
-                <span>{s.icon}</span>
-                <span className="hidden md:inline">{s.label}</span>
+                <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
+                  step >= s.num ? 'bg-[#ccff00] text-black' : 'bg-white/5 text-gray-500'
+                }`}>{s.num}</span>
+                {s.label}
               </div>
-              {s.num < 3 && <ChevronRight size={14} className="text-gray-600" />}
+              {s.num < 2 && <ChevronRight size={14} className="text-gray-700" />}
             </div>
           ))}
         </div>
 
-        {/* STEP 1: Customer Details */}
         <AnimatePresence mode="wait">
+          {/* STEP 1: Customer Details */}
           {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+            <motion.div key="step1" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }} className="max-w-2xl mx-auto space-y-5">
               {autoFilled && (
-                <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-4 flex items-center gap-3">
-                  <Check className="text-green-400 flex-shrink-0" size={20} />
-                  <div>
-                    <p className="text-white font-medium">{ll.welcomeBack}, {form.customerName}!</p>
-                    <p className="text-gray-400 text-sm">{ll.autoFilled}</p>
+                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="bg-green-500/[0.04] border border-green-500/15 rounded-2xl p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                    <Check size={16} className="text-green-400" />
                   </div>
-                </div>
+                  <div>
+                    <p className="text-white text-sm font-medium">{ll.welcomeBack}, {form.customerName}!</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{ll.autoFilled}</p>
+                  </div>
+                </motion.div>
               )}
 
-              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-3">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <User size={20} className="text-[#ccff00]" /> {ll.step1}
-                </h2>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {[
-                    { key: 'customerName', label: ll.fullName, type: 'text', required: true },
-                    { key: 'customerEmail', label: ll.email, type: 'email', required: true },
-                    { key: 'customerPhone', label: ll.phone, type: 'tel', required: true },
-                    { key: 'country', label: ll.country, type: 'select', required: true,
-                      options: [
-                        { value: 'fi', label: '🇫🇮 Finland' },
-                        { value: 'se', label: '🇸🇪 Sweden' },
-                        { value: 'uz', label: "🇺🇿 O'zbekiston" },
-                        { value: 'ru', label: '🇷🇺 Russia' },
-                        { value: 'other', label: '🌍 Other' },
-                      ]
-                    },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="text-xs text-gray-400 mb-1 block">{f.label}{f.required ? ' *' : ''}</label>
-                      {f.type === 'select' ? (
-                        <select value={form[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#ccff00]/50">
-                          {f.options.map(o => <option key={o.value} value={o.value} className="bg-[#0a0a0a]">{o.label}</option>)}
-                        </select>
-                      ) : (
-                        <input type={f.type} value={form[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})}
-                          className={`w-full bg-white/5 border ${errors[f.key] ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#ccff00]/50`} />
-                      )}
-                      {errors[f.key] && <p className="text-red-400 text-xs mt-1">{errors[f.key]}</p>}
-                    </div>
-                  ))}
+              {/* Customer info */}
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                    <User size={15} className="text-[#ccff00]" />
+                  </div>
+                  <span className="text-sm font-semibold">{ll.customerInfo}</span>
+                </div>
+                <div className="p-6">
+                  <div className="grid md:grid-cols-2 gap-3.5">
+                    {[
+                      { key: 'customerName', label: ll.fullName, type: 'text' },
+                      { key: 'customerEmail', label: ll.email, type: 'email' },
+                      { key: 'customerPhone', label: ll.phone, type: 'tel' },
+                      { key: 'country', label: ll.country, type: 'select',
+                        options: [
+                          { value: 'fi', label: '🇫🇮 Finland' },
+                          { value: 'se', label: '🇸🇪 Sweden' },
+                          { value: 'uz', label: "🇺🇿 O'zbekiston" },
+                          { value: 'ru', label: '🇷🇺 Russia' },
+                          { value: 'other', label: '🌍 Other' },
+                        ]
+                      },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{f.label}</label>
+                        {f.type === 'select' ? (
+                          <select value={form[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})}
+                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 h-11 text-white text-sm outline-none focus:border-[#ccff00]/40 transition-all">
+                            {f.options.map(o => <option key={o.value} value={o.value} className="bg-[#0a0a0a]">{o.label}</option>)}
+                          </select>
+                        ) : (
+                          <input type={f.type} value={form[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})}
+                            className={`w-full bg-white/[0.04] border ${errors[f.key] ? 'border-red-500/50' : 'border-white/[0.08]'} rounded-xl px-4 h-11 text-white text-sm outline-none focus:border-[#ccff00]/40 transition-all`} />
+                        )}
+                        {errors[f.key] && <p className="text-red-400 text-[11px] mt-1.5">{errors[f.key]}</p>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-3">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <MapPin size={20} className="text-[#ccff00]" /> {ll.address}
-                </h2>
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div className="md:col-span-2">
-                    <label className="text-xs text-gray-400 mb-1 block">{ll.address} *</label>
-                    <input value={form.address} onChange={e => setForm({...form, address: e.target.value})}
-                      className={`w-full bg-white/5 border ${errors.address ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#ccff00]/50`} />
-                    {errors.address && <p className="text-red-400 text-xs mt-1">{errors.address}</p>}
+              {/* Address */}
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                    <MapPin size={15} className="text-[#ccff00]" />
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">{ll.city} *</label>
-                    <input value={form.city} onChange={e => setForm({...form, city: e.target.value})}
-                      className={`w-full bg-white/5 border ${errors.city ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#ccff00]/50`} />
-                    {errors.city && <p className="text-red-400 text-xs mt-1">{errors.city}</p>}
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">{ll.postalCode} {isFinland ? '*' : ''}</label>
-                    <input value={form.postalCode} onChange={e => setForm({...form, postalCode: e.target.value})}
-                      className={`w-full bg-white/5 border ${errors.postalCode ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#ccff00]/50`} />
-                    {errors.postalCode && <p className="text-red-400 text-xs mt-1">{errors.postalCode}</p>}
-                  </div>
-                  {isFinland && (
-                    <>
+                  <span className="text-sm font-semibold">{ll.deliveryAddr}</span>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-3.5">
+                    <div>
+                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{ll.address}</label>
+                      <input value={form.address} onChange={e => setForm({...form, address: e.target.value})}
+                        className={`w-full bg-white/[0.04] border ${errors.address ? 'border-red-500/50' : 'border-white/[0.08]'} rounded-xl px-4 h-11 text-white text-sm outline-none focus:border-[#ccff00]/40 transition-all`} />
+                      {errors.address && <p className="text-red-400 text-[11px] mt-1.5">{errors.address}</p>}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
                       <div>
-                        <label className="text-xs text-gray-400 mb-1 block">{ll.floor}</label>
-                        <input value={form.floor} onChange={e => setForm({...form, floor: e.target.value})}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#ccff00]/50" />
+                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{ll.city}</label>
+                        <input value={form.city} onChange={e => setForm({...form, city: e.target.value})}
+                          className={`w-full bg-white/[0.04] border ${errors.city ? 'border-red-500/50' : 'border-white/[0.08]'} rounded-xl px-4 h-11 text-white text-sm outline-none focus:border-[#ccff00]/40 transition-all`} />
+                        {errors.city && <p className="text-red-400 text-[11px] mt-1.5">{errors.city}</p>}
                       </div>
                       <div>
-                        <label className="text-xs text-gray-400 mb-1 block">{ll.doorCode}</label>
-                        <input value={form.doorCode} onChange={e => setForm({...form, doorCode: e.target.value})}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#ccff00]/50" />
+                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{ll.postalCode}</label>
+                        <input value={form.postalCode} onChange={e => setForm({...form, postalCode: e.target.value})}
+                          className={`w-full bg-white/[0.04] border ${errors.postalCode ? 'border-red-500/50' : 'border-white/[0.08]'} rounded-xl px-4 h-11 text-white text-sm outline-none focus:border-[#ccff00]/40 transition-all`} />
+                        {errors.postalCode && <p className="text-red-400 text-[11px] mt-1.5">{errors.postalCode}</p>}
                       </div>
-                    </>
+                      {isFinland && (
+                        <>
+                          <div>
+                            <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{ll.floor}</label>
+                            <input value={form.floor} onChange={e => setForm({...form, floor: e.target.value})}
+                              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 h-11 text-white text-sm outline-none focus:border-[#ccff00]/40 transition-all" />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{ll.doorCode}</label>
+                            <input value={form.doorCode} onChange={e => setForm({...form, doorCode: e.target.value})}
+                              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 h-11 text-white text-sm outline-none focus:border-[#ccff00]/40 transition-all" />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery */}
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                    <Truck size={15} className="text-[#ccff00]" />
+                  </div>
+                  <span className="text-sm font-semibold">{ll.delivery}</span>
+                </div>
+                <div className="p-6 space-y-3">
+                  {[
+                    { id: 'standard', icon: '🚚', label: ll.standard, eta: ll.standardEta, price: 0 },
+                    { id: 'express', icon: '✈️', label: ll.express, eta: ll.expressEta, price: 10 },
+                  ].map(d => (
+                    <label key={d.id} className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
+                      form.delivery === d.id
+                        ? 'border-[#ccff00]/30 bg-[#ccff00]/[0.03]'
+                        : 'border-white/[0.06] hover:border-white/[0.12] bg-white/[0.01]'
+                    }`}>
+                      <input type="radio" name="delivery" checked={form.delivery === d.id} onChange={() => setForm({...form, delivery: d.id})} className="hidden" />
+                      <span className="text-xl">{d.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium">{d.label}</p>
+                        <p className="text-gray-600 text-xs mt-0.5">{d.eta}</p>
+                      </div>
+                      <span className={`text-sm font-semibold ${d.price === 0 ? 'text-green-400' : 'text-[#ccff00]'}`}>
+                        {d.price === 0 ? ll.deliveryFree : `$${d.price}`}
+                      </span>
+                    </label>
+                  ))}
+                  {!['fi', 'se'].includes(form.country) && (
+                    <div className="bg-yellow-500/[0.04] border border-yellow-500/15 rounded-xl p-3.5 flex items-start gap-2.5">
+                      <AlertCircle size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-yellow-200/80 text-xs leading-relaxed">{ll.telegramContact}</p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-3">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Truck size={20} className="text-[#ccff00]" /> {ll.delivery}
-                </h2>
-                {[
-                  { id: 'standard', icon: '🚚', label: ll.standard, eta: ll.standardEta, price: 0, priceLbl: ll.standardPrice },
-                  { id: 'express', icon: '✈️', label: ll.express, eta: ll.expressEta, price: 10, priceLbl: ll.expressPrice },
-                ].map(d => (
-                  <label key={d.id} className={`flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${
-                    form.delivery === d.id ? 'border-[#ccff00] bg-[#ccff00]/5' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
-                  }`}>
-                    <input type="radio" name="delivery" checked={form.delivery === d.id} onChange={() => setForm({...form, delivery: d.id})} className="hidden" />
-                    <span className="text-2xl">{d.icon}</span>
-                    <div className="flex-1">
-                      <p className="text-white font-bold">{d.label}</p>
-                      <p className="text-gray-500 text-xs">{d.eta}</p>
-                    </div>
-                    <span className={`font-bold text-sm ${d.price === 0 ? 'text-green-400' : 'text-[#ccff00]'}`}>{d.priceLbl}</span>
-                  </label>
-                ))}
-                {!['fi', 'se'].includes(form.country) && (
-                  <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
-                    <AlertCircle size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-yellow-200 text-xs">{ll.telegramContact}</p>
-                  </div>
-                )}
-              </div>
-
               {!['fi', 'se'].includes(form.country) && (
-                <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-4 text-center">
-                  <p className="text-yellow-200 text-sm font-medium">📨 {ll.telegramFooter}</p>
+                <div className="bg-yellow-500/[0.03] border border-yellow-500/10 rounded-2xl p-4 text-center">
+                  <p className="text-yellow-200/60 text-xs font-medium">📨 {ll.telegramFooter}</p>
                 </div>
               )}
 
               <button onClick={() => { if (validateStep1()) setStep(2) }}
-                className="w-full py-4 bg-[#ccff00] text-black font-bold rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] transition-all">
-                {ll.continue} &rarr;
+                className="w-full h-12 bg-[#ccff00] text-black font-semibold rounded-xl text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.2)] transition-all duration-300 flex items-center justify-center gap-2 group">
+                {ll.continue}
+                <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
             </motion.div>
           )}
 
           {/* STEP 2: Payment */}
           {step === 2 && (
-            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-5">
-              {/* Order Summary */}
-              <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
-                <div className="p-5 border-b border-white/5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-bold flex items-center gap-2 text-sm">
-                      <Package size={16} className="text-[#ccff00]" /> {ll.summary}
-                    </h2>
-                    {coinsToUse > 0 && <span className="text-yellow-400 text-xs font-medium">({coinsToUse} coin)</span>}
-                  </div>
-                </div>
-                <div className="p-5 space-y-2.5">
-                  <div className="space-y-2 max-h-36 overflow-y-auto">
-                    {cartItems.map(item => (
-                      <div key={item.id || item._id} className="flex justify-between items-center">
-                        <span className="text-gray-300 text-sm truncate mr-3">
-                          {typeof item.name === 'string' ? item.name : item.name?.[locale] || item.name?.en}
-                          <span className="text-gray-600 ml-1">x{item.quantity}</span>
-                        </span>
-                        <span className="text-white text-sm font-medium flex-shrink-0">${(item.price * item.quantity).toFixed(0)}</span>
+            <motion.div key="step2" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }} className="grid md:grid-cols-5 gap-5">
+              {/* Left column - Order Summary */}
+              <div className="md:col-span-2 space-y-5">
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden sticky top-24">
+                  <div className="px-5 py-4 border-b border-white/[0.04]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                        <Package size={15} className="text-[#ccff00]" />
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-sm pt-2 border-t border-white/5">
-                    <span className="text-gray-500">{ll.delivery}</span>
-                    <span className="text-white">{deliveryCost > 0 ? `$${deliveryCost}` : ll.deliveryFree}</span>
-                  </div>
-                  {coinsToUse > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{ll.coinsUsedBreakdown}</span>
-                      <span className="text-yellow-400 font-medium">-${(coinsToUse * COIN_USD_VALUE).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold pt-3 border-t border-white/10">
-                    <span>{ll.totalPay}</span>
-                    <span className="text-[#ccff00] text-lg">${remainingAfterCoins.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Method Selection */}
-              <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
-                <div className="p-5 border-b border-white/5">
-                  <h2 className="font-bold flex items-center gap-2 text-sm">
-                    <CreditCard size={16} className="text-[#ccff00]" /> {ll.paymentMethod}
-                  </h2>
-                </div>
-                <div className="p-5 space-y-2.5">
-                  {/* Card */}
-                  <button onClick={() => { setPaymentMethod('full'); setUseCoins(false); setCoinsToUse(0) }}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                      paymentMethod === 'full'
-                        ? 'border-[#ccff00] bg-[#ccff00]/5 shadow-[0_0_15px_rgba(204,255,0,0.05)]'
-                        : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
-                    }`}>
-                    <span className="text-2xl">💳</span>
-                    <div className="flex-1 text-left">
-                      <p className="text-white font-bold text-sm">{ll.cardFull}</p>
-                      <p className="text-gray-500 text-xs">${orderTotal} {ll.payAmount}</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      paymentMethod === 'full' ? 'border-[#ccff00]' : 'border-gray-700'
-                    }`}>
-                      {paymentMethod === 'full' && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-3 h-3 rounded-full bg-[#ccff00]" />}
-                    </div>
-                  </button>
-
-                  {/* Coins Only */}
-                  {(userCoins * COIN_USD_VALUE) >= orderTotal && (
-                    <button onClick={() => { setPaymentMethod('coins'); setUseCoins(true); setCoinsToUse(Math.ceil(orderTotal / COIN_USD_VALUE)) }}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                        paymentMethod === 'coins'
-                          ? 'border-yellow-500 bg-yellow-500/5 shadow-[0_0_15px_rgba(255,200,0,0.05)]'
-                          : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
-                      }`}>
-                      <span className="text-2xl">🪙</span>
-                      <div className="flex-1 text-left">
-                        <p className="text-white font-bold text-sm">{ll.coinsFull}</p>
-                        <p className="text-gray-500 text-xs">{Math.ceil(orderTotal / COIN_USD_VALUE)} coin <span className="text-gray-600 mx-1">|</span> {ll.coinBalance}: <span className="text-yellow-400 font-medium">{userCoins}</span></p>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        paymentMethod === 'coins' ? 'border-yellow-500' : 'border-gray-700'
-                      }`}>
-                        {paymentMethod === 'coins' && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-3 h-3 rounded-full bg-yellow-500" />}
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Combined (always show if user has coins) */}
-                  {userCoins > 0 && (
-                    <button onClick={() => { setPaymentMethod('combined'); setUseCoins(true); setCoinsToUse(Math.min(userCoins, Math.floor(orderTotal / 2 / COIN_USD_VALUE))) }}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                        paymentMethod === 'combined'
-                          ? 'border-[#ccff00] bg-[#ccff00]/5 shadow-[0_0_15px_rgba(204,255,0,0.05)]'
-                          : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
-                      }`}>
-                      <span className="text-2xl">🔄</span>
-                      <div className="flex-1 text-left">
-                        <p className="text-white font-bold text-sm">{ll.combined}</p>
-                        <p className="text-gray-500 text-xs">{maxCoins} coin + ${Math.max(0, orderTotal - (maxCoins * COIN_USD_VALUE)).toFixed(2)} {ll.cardPayBreakdown.toLowerCase()}</p>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        paymentMethod === 'combined' ? 'border-[#ccff00]' : 'border-gray-700'
-                      }`}>
-                        {paymentMethod === 'combined' && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-3 h-3 rounded-full bg-[#ccff00]" />}
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Not enough coins notice */}
-                  {userCoins > 0 && (userCoins * COIN_USD_VALUE) < orderTotal && paymentMethod === 'full' && (
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-start gap-2">
-                      <Info size={14} className="text-gray-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-gray-400 text-xs">
-                        Sizda <span className="text-yellow-400 font-medium">{userCoins} coin</span> bor.
-                    <button onClick={() => { setPaymentMethod('combined'); setUseCoins(true); setCoinsToUse(Math.min(userCoins, Math.floor(orderTotal / 2 / COIN_USD_VALUE))) }}
-                          className="text-[#ccff00] hover:underline ml-1 font-medium">
-                          {ll.combined} usulini tanlang
-                        </button>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Combined coin slider */}
-              {useCoins && paymentMethod === 'combined' && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-br from-yellow-500/5 to-yellow-600/5 border border-yellow-500/20 rounded-2xl overflow-hidden">
-                  <div className="p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                          <Coins size={16} className="text-yellow-400" />
-                        </div>
-                        <span className="text-yellow-400 font-bold text-sm">{ll.useCoin}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-white font-bold text-lg">${(coinsToUse * COIN_USD_VALUE).toFixed(2)}</span>
-                        <span className="text-gray-500 text-xs ml-1">({coinsToUse} coin)</span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input type="range" min={1} max={maxCoins} value={coinsToUse}
-                        onChange={e => { setCoinsToUse(parseInt(e.target.value)) }}
-                        className="w-full accent-[#ccff00] h-2 rounded-full appearance-none bg-white/10" />
-                      <div className="flex justify-between text-[10px] text-gray-600 mt-1">
-                        <span>${(1 * COIN_USD_VALUE).toFixed(3)}</span>
-                        <span>${(maxCoins * COIN_USD_VALUE).toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <div className="bg-black/40 rounded-xl p-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">{ll.orderTotal}</span>
-                        <span className="text-white">${orderTotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">{ll.coinsUsedBreakdown}</span>
-                        <span className="text-yellow-400 font-medium">-${(coinsToUse * COIN_USD_VALUE).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold pt-2.5 border-t border-white/10 mt-2">
-                        <span>{ll.cardPay}</span>
-                        <span className="text-[#ccff00]">${remainingAfterCoins.toFixed(2)}</span>
+                      <div>
+                        <p className="text-sm font-semibold">{ll.yourOrder}</p>
+                        <p className="text-gray-600 text-[11px] mt-0.5">{itemCount} {ll.items}</p>
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              )}
-
-              {/* Loyalty Bonus Display */}
-              {bonus > 0 && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-[#ccff00]/5 to-green-500/5 border border-[#ccff00]/20 rounded-2xl overflow-hidden">
                   <div className="p-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-[#ccff00]/10 flex items-center justify-center flex-shrink-0">
-                        <span className="text-2xl">🎁</span>
+                    <div className="space-y-2.5 mb-4 max-h-44 overflow-y-auto pr-1">
+                      {cartItems.map(item => (
+                        <div key={item.id || item._id} className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0 text-[10px] text-gray-500 font-medium">
+                            {item.quantity}x
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-xs truncate">
+                              {typeof item.name === 'string' ? item.name : item.name?.[locale] || item.name?.en}
+                            </p>
+                            <p className="text-gray-600 text-[11px] mt-0.5">${item.price.toFixed(2)} each</p>
+                          </div>
+                          <p className="text-white text-xs font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-2.5 pt-4 border-t border-white/[0.06]">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-500">{ll.delivery}</span>
+                        <span className="text-white">{deliveryCost > 0 ? `$${deliveryCost.toFixed(2)}` : ll.deliveryFree}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-bold">+{bonus} {ll.bonusCoins}</p>
-                        <p className="text-gray-500 text-xs mt-0.5">{coinEquiv(bonus)}</p>
-                        <p className="text-gray-500 text-xs mt-0.5">{ll.purchaseReward}. {ll.adminVerify}</p>
-                        <p className="text-gray-600 text-[11px] mt-1">{ll.afterPurchase}: <span className="text-yellow-400 font-medium">{coinsAfterPurchase} coin</span></p>
+                      <div className="flex justify-between text-sm font-semibold pt-2 border-t border-white/[0.06]">
+                        <span>{ll.totalPay}</span>
+                        <span className="text-[#ccff00]">${orderTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              )}
+                </div>
+              </div>
 
-              {/* Country-based payment */}
-              {remainingAfterCoins > 0 && !paymentCompleted && (
-                <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
-                  <div className="p-5 border-b border-white/5">
-                    <h3 className="font-bold text-sm flex items-center gap-2">
-                      <CreditCard size={16} className="text-[#ccff00]" /> {ll.payWithCard}
-                    </h3>
+              {/* Right column - Payment */}
+              <div className="md:col-span-3 space-y-5">
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                      <CreditCard size={15} className="text-[#ccff00]" />
+                    </div>
+                    <span className="text-sm font-semibold">{ll.paymentMethod}</span>
                   </div>
-                  <div className="p-5 space-y-3">
-                    {pendingOrderId ? (
-                      <PaymentSelector
-                        amount={remainingAfterCoins}
-                        orderId={pendingOrderId}
-                        country={form.country}
-                        currency={form.country === 'fi' ? 'eur' : 'usd'}
-                        customerEmail={form.customerEmail}
-                        onPaid={async () => {
-                          setPaymentCompleted(true)
-                          const currentOrder = pendingOrderRef
-                          if (currentOrder) {
-                            await updateOrder(pendingOrderId, {
-                              status: 'paid',
-                              paidAt: new Date().toISOString(),
-                              paymentMethod: form.country === 'fi' ? 'stripe' : form.country === 'uz' ? 'payme' : 'sberbank',
-                              history: [...(currentOrder.history || []), { status: 'paid', time: new Date().toISOString(), note: 'Auto-verified payment' }],
-                            })
-                          }
-                          fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: pendingOrderId, status: 'paid' }) }).catch(() => {})
-                          saveProfileData(form)
-                          clearCart()
-                          localStorage.setItem('tenza_user_email', form.customerEmail)
-                          if (user?.login) {
-                            await addPurchaseBonus(user.login, orderTotal)
-                          }
-                          window.location.href = `/success?order=${pendingOrderId}&email=${encodeURIComponent(form.customerEmail)}&coins=${coinsToUse}&status=paid`
-                        }}
-                        onError={(msg) => console.error('Payment error:', msg)}
-                      />
+                  <div className="p-6">
+                    {paymentCompleted ? (
+                      <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+                        className="bg-green-500/[0.04] border border-green-500/15 rounded-2xl p-8 text-center">
+                        <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                          <Check size={28} className="text-green-400" />
+                        </div>
+                        <p className="text-white font-bold text-lg">{ll.paidReceived}</p>
+                        <p className="text-gray-500 text-sm mt-1">{ll.adminVerify}</p>
+                      </motion.div>
+                    ) : pendingOrderId ? (
+                      <div className="space-y-4">
+                        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-white text-sm font-medium">{ll.totalPay}</p>
+                            <p className="text-gray-600 text-[11px] mt-0.5">{itemCount} {ll.items}</p>
+                          </div>
+                          <span className="text-[#ccff00] text-xl font-bold">${orderTotal.toFixed(2)}</span>
+                        </div>
+                        <PaymentSelector
+                          amount={orderTotal}
+                          orderId={pendingOrderId}
+                          country={form.country}
+                          currency={form.country === 'fi' ? 'eur' : 'usd'}
+                          customerEmail={form.customerEmail}
+                          onPaid={async () => {
+                            setPaymentCompleted(true)
+                            const currentOrder = pendingOrderRef
+                            if (currentOrder) {
+                              await updateOrder(pendingOrderId, {
+                                status: 'paid',
+                                paidAt: new Date().toISOString(),
+                                paymentMethod: form.country === 'fi' ? 'stripe' : form.country === 'uz' ? 'payme' : 'sberbank',
+                                history: [...(currentOrder.history || []), { status: 'paid', time: new Date().toISOString(), note: 'Auto-verified payment' }],
+                              })
+                            }
+                            fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: pendingOrderId, status: 'paid' }) }).catch(() => {})
+                            saveProfileData(form)
+                            clearCart()
+                            localStorage.setItem('tenza_user_email', form.customerEmail)
+                            if (user?.login) {
+                              await addPurchaseBonus(user.login, orderTotal)
+                            }
+                            window.location.href = `/success?order=${pendingOrderId}&email=${encodeURIComponent(form.customerEmail)}&status=paid`
+                          }}
+                          onError={(msg) => console.error('Payment error:', msg)}
+                        />
+                      </div>
                     ) : (
-                      <button onClick={async () => {
-                        const orderId = generateOrderId()
-                        const order = {
-                          id: orderId, orderId, customerName: form.customerName,
-                          fullName: form.customerName, email: form.customerEmail, phone: form.customerPhone,
-                          country: form.country, city: form.city, address: form.address,
-                          postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
-                          items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
-                          total: orderTotal, paymentMethod: 'card',
-                          coinsUsed: useCoins ? coinsToUse : 0, coinsEarned: 0,
-                          remainingAmount: remainingAfterCoins, login: user?.login || form.customerEmail,
-                          status: 'pending_payment',
-                          history: [{ status: 'pending_payment', time: new Date().toISOString() }],
-                          createdAt: new Date().toISOString(),
-                        }
-                        setPendingOrderId(orderId)
-                        setPendingOrderRef(order)
-                        await addOrder(order)
-                        fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
-                        sendTelegramNotification(order)
-                      }}
-                        className="w-full py-4 bg-[#ccff00] text-black font-bold rounded-2xl text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] transition-all flex items-center justify-center gap-2">
-                        <CreditCard size={20} /> {ll.payWithCard}
-                      </button>
+                      <div className="space-y-4">
+                        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-white text-sm font-medium">{ll.totalPay}</p>
+                            <p className="text-gray-600 text-[11px] mt-0.5">{itemCount} {ll.items}</p>
+                          </div>
+                          <span className="text-[#ccff00] text-xl font-bold">${orderTotal.toFixed(2)}</span>
+                        </div>
+                        <p className="text-gray-500 text-xs">{ll.chooseMethod}</p>
+                        <button onClick={handlePlaceOrder} disabled={submitting}
+                          className="w-full h-12 bg-[#ccff00] text-black font-semibold rounded-xl text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.2)] transition-all duration-300 disabled:opacity-40 flex items-center justify-center gap-2.5">
+                          {submitting ? (
+                            <span className="flex items-center gap-2.5">
+                              <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                              ...
+                            </span>
+                          ) : (
+                            <><CreditCard size={17} /> {ll.payWithCard}</>
+                          )}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
-              )}
 
-              {paymentCompleted && (
-                <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center">
-                  <p className="text-green-400 font-bold text-lg">{ll.paidReceived}</p>
-                  <p className="text-gray-400 text-sm mt-1">{ll.adminVerify}</p>
+                {/* Security notice */}
+                <div className="flex items-center justify-center gap-2 text-gray-600 text-[11px]">
+                  <Lock size={12} />
+                  <span>{ll.security}</span>
                 </div>
-              )}
 
-              {/* Coins-only success notice */}
-              {useCoins && remainingAfterCoins <= 0 && (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                  className="bg-gradient-to-br from-green-500/5 to-emerald-500/5 border border-green-500/20 rounded-2xl overflow-hidden">
-                  <div className="p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-yellow-500/10 border-2 border-yellow-500/20 flex items-center justify-center mx-auto mb-4">
-                      <Coins size={32} className="text-yellow-400" />
-                    </div>
-                    <p className="text-white font-bold text-lg">{ll.coinsFull}</p>
-                    <p className="text-gray-400 text-sm mt-1">{Math.ceil(orderTotal / COIN_USD_VALUE)} coin {ll.coinUsed}</p>
-                    <p className="text-gray-600 text-xs mt-1">{coinEquiv(Math.ceil(orderTotal / COIN_USD_VALUE))}</p>
-                  </div>
-                </motion.div>
-              )}
-
-              <div className="flex items-center gap-2 text-gray-600 text-xs justify-center">
-                <Shield size={14} />
-                <span>{ll.security}</span>
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => setStep(1)}
-                  className="flex-1 py-4 border border-white/10 text-gray-400 font-bold rounded-2xl hover:bg-white/5 hover:text-white transition-all text-sm">
-                  &larr; {ll.back}
-                </button>
-                <button onClick={handlePlaceOrder} disabled={(remainingAfterCoins > 0 && !paymentCompleted) || submitting}
-                  className="flex-[2] py-4 bg-[#ccff00] text-black font-bold rounded-2xl disabled:opacity-30 text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] transition-all flex items-center justify-center gap-2">
-                  {submitting ? (
-                    <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> ...</span>
-                  ) : (
-                    <>{ll.placeOrder}</>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <button onClick={() => setStep(1)}
+                    className="flex-1 h-11 border border-white/[0.08] text-gray-400 font-medium rounded-xl hover:bg-white/[0.03] hover:text-white transition-all text-sm">
+                    &larr; {ll.back}
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
