@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -120,15 +120,18 @@ function SuccessContent() {
 
   useEffect(() => {
     if (userEmail) localStorage.setItem('tenza_user_email', userEmail)
-    ;(async () => {
+
+    const loadOrder = async () => {
       try {
         const orders = await getAllOrders()
         const found = orders.find(o => (o.id || o.orderId) === orderId)
         if (found) setOrder(found)
       } catch {}
-    })()
+    }
+    loadOrder()
+
     if (sessionId && orderId !== 'UNKNOWN') {
-      ;(async () => {
+      const verifyPayment = async () => {
         try {
           const res = await fetch(`/api/stripe-payment?sessionId=${sessionId}`)
           const data = await res.json()
@@ -147,8 +150,25 @@ function SuccessContent() {
             }
           }
         } catch {}
-      })()
+      }
+      verifyPayment()
     }
+
+    const doneRef = { current: false }
+    const pollInterval = setInterval(async () => {
+      if (doneRef.current) return
+      try {
+        const res = await fetch('/api/orders?status=paid')
+        const data = await res.json()
+        if (data.orders?.some(o => (o.id || o.orderId) === orderId)) {
+          doneRef.current = true
+          setPaymentVerified(true)
+          clearInterval(pollInterval)
+        }
+      } catch {}
+    }, 5000)
+
+    return () => { doneRef.current = true; clearInterval(pollInterval) }
   }, [orderId, userEmail, sessionId])
 
   return (
