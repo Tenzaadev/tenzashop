@@ -133,7 +133,7 @@ function SuccessContent() {
     if (sessionId && orderId !== 'UNKNOWN') {
       const verifyPayment = async () => {
         try {
-          const res = await fetch(`/api/stripe-payment?sessionId=${sessionId}`)
+          const res = await fetch(`/api/stripe-checkout?sessionId=${sessionId}`)
           const data = await res.json()
           if (data.paid) {
             setPaymentVerified(true)
@@ -245,7 +245,7 @@ function SuccessContent() {
             <div className="flex justify-between">
               <span className="text-gray-400">{lang.paymentMethod}</span>
               <span className="text-white">
-                {order?.paymentMethod === 'coins' ? <>🪙 {lang.paidWithCoins}</> : order?.paymentMethod === 'combined' ? '🪙 + 💳' : order?.paymentMethod === 'stripe' ? '💳 Visa / Mastercard' : '💳 Sberbank QR'}
+                {sessionId ? '💳 Visa / Mastercard (Stripe)' : order?.paymentMethod === 'coins' ? <>🪙 {lang.paidWithCoins}</> : order?.paymentMethod === 'combined' ? '🪙 + 💳' : '💳 Sberbank QR'}
               </span>
             </div>
             {order?.coinsUsed > 0 && (

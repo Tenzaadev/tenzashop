@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
-  ArrowLeft, CreditCard, Check, Shield, User, MapPin, Package,
+  CreditCard, Check, User, MapPin, Package,
   Truck, ChevronRight, AlertCircle, ShoppingBag, Lock, Loader2
 } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -14,7 +14,6 @@ import {
 } from '@/utils/payment'
 import { addOrder } from '@/lib/firestore'
 import Header from '../components/Header'
-import PaymentSelector from '../components/PaymentSelector'
 
 const L = {
   uz: {
@@ -230,6 +229,7 @@ export default function CheckoutPage() {
         return
       }
       if (data.url) {
+        clearCart()
         window.location.href = data.url
       }
     } catch (e) {
