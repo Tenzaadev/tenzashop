@@ -1,10 +1,10 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
   ArrowLeft, CreditCard, Check, Shield, User, MapPin, Package,
-  Truck, ChevronRight, AlertCircle, ShoppingBag, Lock
+  Truck, ChevronRight, AlertCircle, ShoppingBag, Lock, Loader2
 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/context/AuthContext'
@@ -12,7 +12,7 @@ import {
   generateOrderId, clearCart, getCart,
   autoFillUserProfile, saveProfileData, sendTelegramNotification
 } from '@/utils/payment'
-import { addOrder, updateOrder } from '@/lib/firestore'
+import { addOrder } from '@/lib/firestore'
 import Header from '../components/Header'
 import PaymentSelector from '../components/PaymentSelector'
 
@@ -26,20 +26,18 @@ const L = {
     standardEta: '20-30 kun', expressEta: '10-15 kun',
     standardPrice: 'Bepul', expressPrice: '$10',
     customerInfo: "Ma'lumotlar", deliveryAddr: 'Manzil',
-    paymentMethod: "To'lov", summary: 'Buyurtma',
-    payWithCard: "To'lovni boshlash",
-    paidReceived: "To'lov qabul qilindi!",
-    adminVerify: 'Admin tekshirib tasdiqlaydi',
+    paymentMethod: "To'lov", payWithCard: "💳 Visa / Mastercard orqali to'lash",
+    paidReceived: "To'lov qabul qilindi!", adminVerify: 'Admin tekshirib tasdiqlaydi',
     telegramContact: 'Boshqa davlatlarga yetkazish uchun Telegramdan @tenza_me ga yozing',
     telegramFooter: 'Boshqa davlatlarga yetkazish uchun Telegramdan bog\'laning',
     cartEmpty: 'Savat bo\'sh', continueShopping: 'Xaridni davom ettirish',
     required: 'Majburiy', invalidEmail: 'Noto\'g\'ri email',
     invalidPhone: 'Noto\'g\'ri telefon',
-    deliveryFree: 'Bepul', orderAmount: 'Jami',
-    yourOrder: 'Sizning buyurtmangiz', security: 'To\'lovlar xavfsiz shifrlangan',
+    deliveryFree: 'Bepul', yourOrder: 'Sizning buyurtmangiz',
+    security: "To'lovlar xavfsiz shifrlangan",
     welcomeBack: 'Xush kelibsiz', autoFilled: 'Ma\'lumotlaringiz avtomatik to\'ldirildi',
-    totalPay: 'To\'lov summasi', chooseMethod: 'To\'lov usulini tanlang',
-    items: 'mahsulot',
+    totalPay: "To'lov summasi", items: 'mahsulot',
+    payme: 'Uzcard / Humo (Payme)', sberbank: 'Сбербанк QR', tbank: 'Т-Банк',
   },
   ru: {
     title: 'Заказ', back: 'Назад', continue: 'Продолжить',
@@ -50,20 +48,18 @@ const L = {
     standardEta: '20-30 дней', expressEta: '10-15 дней',
     standardPrice: 'Бесплатно', expressPrice: '$10',
     customerInfo: 'Данные', deliveryAddr: 'Адрес',
-    paymentMethod: 'Оплата', summary: 'Заказ',
-    payWithCard: 'Начать оплату',
-    paidReceived: 'Платёж получен!',
-    adminVerify: 'Администратор проверит и подтвердит',
+    paymentMethod: 'Оплата', payWithCard: '💳 Visa / Mastercard',
+    paidReceived: 'Платёж получен!', adminVerify: 'Администратор проверит',
     telegramContact: 'Для доставки в другие страны напишите в Telegram @tenza_me',
     telegramFooter: 'Для доставки в другие страны свяжитесь через Telegram',
     cartEmpty: 'Корзина пуста', continueShopping: 'Продолжить покупки',
     required: 'Обязательно', invalidEmail: 'Неверный email',
     invalidPhone: 'Неверный телефон',
-    deliveryFree: 'Бесплатно', orderAmount: 'Итого',
-    yourOrder: 'Ваш заказ', security: 'Платежи защищены шифрованием',
+    deliveryFree: 'Бесплатно', yourOrder: 'Ваш заказ',
+    security: 'Платежи защищены шифрованием',
     welcomeBack: 'С возвращением', autoFilled: 'Данные заполнены автоматически',
-    totalPay: 'Сумма к оплате', chooseMethod: 'Выберите способ оплаты',
-    items: 'товар(а)',
+    totalPay: 'Сумма к оплате', items: 'товар(а)',
+    payme: 'Uzcard / Humo (Payme)', sberbank: 'Сбербанк QR', tbank: 'Т-Банк',
   },
   en: {
     title: 'Checkout', back: 'Back', continue: 'Continue',
@@ -74,20 +70,18 @@ const L = {
     standardEta: '20-30 days', expressEta: '10-15 days',
     standardPrice: 'Free', expressPrice: '$10',
     customerInfo: 'Details', deliveryAddr: 'Address',
-    paymentMethod: 'Payment', summary: 'Order',
-    payWithCard: 'Pay Now',
-    paidReceived: 'Payment received!',
-    adminVerify: 'Admin will verify and confirm',
+    paymentMethod: 'Payment', payWithCard: '💳 Pay with Visa / Mastercard',
+    paidReceived: 'Payment received!', adminVerify: 'Admin will verify',
     telegramContact: 'For delivery to other countries, contact @tenza_me on Telegram',
     telegramFooter: 'For delivery to other countries, contact via Telegram',
     cartEmpty: 'Cart is empty', continueShopping: 'Continue Shopping',
     required: 'Required', invalidEmail: 'Invalid email',
     invalidPhone: 'Invalid phone',
-    deliveryFree: 'Free', orderAmount: 'Total',
-    yourOrder: 'Your Order', security: 'Payments are securely encrypted',
+    deliveryFree: 'Free', yourOrder: 'Your Order',
+    security: 'Payments are securely encrypted',
     welcomeBack: 'Welcome back', autoFilled: 'Details auto-filled',
-    totalPay: 'Total to pay', chooseMethod: 'Choose payment method',
-    items: 'items',
+    totalPay: 'Total to pay', items: 'items',
+    payme: 'Uzcard / Humo (Payme)', sberbank: 'Sberbank QR', tbank: 'T-Bank',
   },
   fi: {
     title: 'Kassa', back: 'Takaisin', continue: 'Jatka',
@@ -98,20 +92,18 @@ const L = {
     standardEta: '20-30 päivää', expressEta: '10-15 päivää',
     standardPrice: 'Ilmainen', expressPrice: '$10',
     customerInfo: 'Tiedot', deliveryAddr: 'Osoite',
-    paymentMethod: 'Maksu', summary: 'Tilaus',
-    payWithCard: 'Maksa nyt',
-    paidReceived: 'Maksu vastaanotettu!',
-    adminVerify: 'Ylläpitäjä vahvistaa',
+    paymentMethod: 'Maksu', payWithCard: '💳 Visa / Mastercard',
+    paidReceived: 'Maksu vastaanotettu!', adminVerify: 'Ylläpitäjä vahvistaa',
     telegramContact: 'Ota yhteyttä Telegramissa @tenza_me',
     telegramFooter: 'Ota yhteyttä Telegramin kautta',
     cartEmpty: 'Ostoskori on tyhjä', continueShopping: 'Jatka ostoksia',
     required: 'Pakollinen', invalidEmail: 'Virheellinen sähköposti',
     invalidPhone: 'Virheellinen puhelin',
-    deliveryFree: 'Ilmainen', orderAmount: 'Yhteensä',
-    yourOrder: 'Tilauksesi', security: 'Maksut on suojattu',
+    deliveryFree: 'Ilmainen', yourOrder: 'Tilauksesi',
+    security: 'Maksut on suojattu',
     welcomeBack: 'Tervetuloa', autoFilled: 'Tiedot täytetty automaattisesti',
-    totalPay: 'Maksettava yhteensä', chooseMethod: 'Valitse maksutapa',
-    items: 'tuotetta',
+    totalPay: 'Maksettava yhteensä', items: 'tuotetta',
+    payme: 'Uzcard / Humo (Payme)', sberbank: 'Sberbank QR', tbank: 'T-Bank',
   },
   sv: {
     title: 'Kassa', back: 'Tillbaka', continue: 'Fortsätt',
@@ -122,20 +114,18 @@ const L = {
     standardEta: '20-30 dagar', expressEta: '10-15 dagar',
     standardPrice: 'Gratis', expressPrice: '$10',
     customerInfo: 'Uppgifter', deliveryAddr: 'Adress',
-    paymentMethod: 'Betalning', summary: 'Beställning',
-    payWithCard: 'Betala nu',
-    paidReceived: 'Betalning mottagen!',
-    adminVerify: 'Admin verifierar',
+    paymentMethod: 'Betalning', payWithCard: '💳 Visa / Mastercard',
+    paidReceived: 'Betalning mottagen!', adminVerify: 'Admin verifierar',
     telegramContact: 'Kontakta @tenza_me på Telegram',
     telegramFooter: 'Kontakta via Telegram',
     cartEmpty: 'Varukorgen är tom', continueShopping: 'Fortsätt handla',
     required: 'Obligatoriskt', invalidEmail: 'Ogiltig e-post',
     invalidPhone: 'Ogiltig telefon',
-    deliveryFree: 'Gratis', orderAmount: 'Totalt',
-    yourOrder: 'Din beställning', security: 'Betalningar är krypterade',
+    deliveryFree: 'Gratis', yourOrder: 'Din beställning',
+    security: 'Betalningar är krypterade',
     welcomeBack: 'Välkommen tillbaka', autoFilled: 'Uppgifter ifyllda automatiskt',
-    totalPay: 'Totalt att betala', chooseMethod: 'Välj betalningsmetod',
-    items: 'produkter',
+    totalPay: 'Totalt att betala', items: 'produkter',
+    payme: 'Uzcard / Humo (Payme)', sberbank: 'Sberbank QR', tbank: 'T-Bank',
   },
 }
 
@@ -157,8 +147,9 @@ export default function CheckoutPage() {
 
   const [paymentCompleted, setPaymentCompleted] = useState(false)
   const [pendingOrderId, setPendingOrderId] = useState(null)
-  const [pendingOrderRef, setPendingOrderRef] = useState(null)
   const [autoFilled, setAutoFilled] = useState(false)
+  const [stripeError, setStripeError] = useState('')
+  const [stripeLoading, setStripeLoading] = useState(false)
 
   useEffect(() => {
     const cart = getCart()
@@ -188,33 +179,145 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0
   }
 
-  const handlePlaceOrder = async () => {
-    if (submitting || pendingOrderId) return
-    setSubmitting(true)
+  const handleStripePayment = useCallback(async () => {
+    setStripeError('')
+    setStripeLoading(true)
+    try {
+      const orderId = generateOrderId()
+      setPendingOrderId(orderId)
+      saveProfileData(form)
 
-    const orderId = generateOrderId()
-    const order = {
-      id: orderId, orderId,
-      customerName: form.customerName, fullName: form.customerName,
-      email: form.customerEmail, phone: form.customerPhone,
-      country: form.country, city: form.city, address: form.address,
-      postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
-      items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
-      total: orderTotal, paymentMethod: 'card',
-      coinsUsed: 0, coinsEarned: 0,
-      remainingAmount: orderTotal,
-      login: user?.login || form.customerEmail,
-      status: 'pending_payment',
-      history: [{ status: 'pending_payment', time: new Date().toISOString() }],
-      createdAt: new Date().toISOString(),
+      const order = {
+        id: orderId, orderId,
+        customerName: form.customerName, fullName: form.customerName,
+        email: form.customerEmail, phone: form.customerPhone,
+        country: form.country, city: form.city, address: form.address,
+        postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
+        items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
+        total: orderTotal, paymentMethod: 'stripe',
+        coinsUsed: 0, coinsEarned: 0,
+        remainingAmount: orderTotal,
+        login: user?.login || form.customerEmail,
+        status: 'pending_payment',
+        history: [{ status: 'pending_payment', time: new Date().toISOString() }],
+        createdAt: new Date().toISOString(),
+      }
+      await addOrder(order)
+      fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
+      sendTelegramNotification(order)
+
+      const res = await fetch('/api/stripe-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cartItems.map(item => ({
+            name: typeof item.name === 'string' ? item.name : (item.name?.en || 'Product'),
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+          })),
+          orderId,
+          customerEmail: form.customerEmail,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setStripeError(data.error)
+        setStripeLoading(false)
+        return
+      }
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (e) {
+      setStripeError(e.message)
+      setStripeLoading(false)
     }
-    setPendingOrderId(orderId)
-    setPendingOrderRef(order)
-    await addOrder(order)
-    fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
-    sendTelegramNotification(order)
-    setSubmitting(false)
-  }
+  }, [form, cartItems, subtotal, deliveryCost, orderTotal, user, addPurchaseBonus])
+
+  const handlePaymePayment = useCallback(async () => {
+    setStripeLoading(true)
+    try {
+      const orderId = generateOrderId()
+      setPendingOrderId(orderId)
+      saveProfileData(form)
+
+      const order = {
+        id: orderId, orderId,
+        customerName: form.customerName, fullName: form.customerName,
+        email: form.customerEmail, phone: form.customerPhone,
+        country: form.country, city: form.city, address: form.address,
+        postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
+        items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
+        total: orderTotal, paymentMethod: 'payme',
+        coinsUsed: 0, coinsEarned: 0,
+        remainingAmount: orderTotal,
+        login: user?.login || form.customerEmail,
+        status: 'pending_payment',
+        history: [{ status: 'pending_payment', time: new Date().toISOString() }],
+        createdAt: new Date().toISOString(),
+      }
+      await addOrder(order)
+      fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
+      sendTelegramNotification(order)
+
+      const res = await fetch('/api/payme-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: orderTotal, orderId }),
+      })
+      const data = await res.json()
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setStripeLoading(false)
+    }
+  }, [form, cartItems, subtotal, deliveryCost, orderTotal, user, addPurchaseBonus])
+
+  const handleSberPayment = useCallback(async (methodType) => {
+    setStripeLoading(true)
+    try {
+      const orderId = generateOrderId()
+      setPendingOrderId(orderId)
+      saveProfileData(form)
+
+      const order = {
+        id: orderId, orderId,
+        customerName: form.customerName, fullName: form.customerName,
+        email: form.customerEmail, phone: form.customerPhone,
+        country: form.country, city: form.city, address: form.address,
+        postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
+        items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
+        total: orderTotal, paymentMethod: methodType,
+        coinsUsed: 0, coinsEarned: 0,
+        remainingAmount: orderTotal,
+        login: user?.login || form.customerEmail,
+        status: 'pending_payment',
+        history: [{ status: 'pending_payment', time: new Date().toISOString() }],
+        createdAt: new Date().toISOString(),
+      }
+      await addOrder(order)
+      fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
+      sendTelegramNotification(order)
+
+      const res = await fetch('/api/sber-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: orderTotal, orderId, description: `Заказ ${orderId}`, method: methodType }),
+      })
+      const data = await res.json()
+      if (data.qrCode) {
+        window.location.href = data.qrCode
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setStripeLoading(false)
+    }
+  }, [form, cartItems, subtotal, deliveryCost, orderTotal, user, addPurchaseBonus])
 
   if (cartItems.length === 0) {
     return (
@@ -236,7 +339,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-2xl border-b border-white/[0.04]">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/cart" className="w-10 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-all">
@@ -252,7 +354,6 @@ export default function CheckoutPage() {
       </div>
 
       <div className="pt-20 pb-16 px-4 max-w-5xl mx-auto">
-        {/* Step indicator */}
         <div className="flex items-center gap-3 mb-10 pt-4">
           {[
             { num: 1, label: ll.customerInfo },
@@ -273,7 +374,6 @@ export default function CheckoutPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* STEP 1: Customer Details */}
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }} className="max-w-2xl mx-auto space-y-5">
               {autoFilled && (
@@ -288,7 +388,6 @@ export default function CheckoutPage() {
                 </motion.div>
               )}
 
-              {/* Customer info */}
               <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
@@ -330,7 +429,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Address */}
               <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
@@ -378,7 +476,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Delivery */}
               <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
@@ -430,10 +527,8 @@ export default function CheckoutPage() {
             </motion.div>
           )}
 
-          {/* STEP 2: Payment */}
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }} className="grid md:grid-cols-5 gap-5">
-              {/* Left column - Order Summary */}
               <div className="md:col-span-2 space-y-5">
                 <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden sticky top-24">
                   <div className="px-5 py-4 border-b border-white/[0.04]">
@@ -478,7 +573,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Right column - Payment */}
               <div className="md:col-span-3 space-y-5">
                 <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl backdrop-blur-sm overflow-hidden">
                   <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-2.5">
@@ -497,44 +591,6 @@ export default function CheckoutPage() {
                         <p className="text-white font-bold text-lg">{ll.paidReceived}</p>
                         <p className="text-gray-500 text-sm mt-1">{ll.adminVerify}</p>
                       </motion.div>
-                    ) : pendingOrderId ? (
-                      <div className="space-y-4">
-                        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-white text-sm font-medium">{ll.totalPay}</p>
-                            <p className="text-gray-600 text-[11px] mt-0.5">{itemCount} {ll.items}</p>
-                          </div>
-                          <span className="text-[#ccff00] text-xl font-bold">${orderTotal.toFixed(2)}</span>
-                        </div>
-                        <PaymentSelector
-                          amount={orderTotal}
-                          orderId={pendingOrderId}
-                          country={form.country}
-                          currency={form.country === 'fi' ? 'eur' : 'usd'}
-                          customerEmail={form.customerEmail}
-                          onPaid={async () => {
-                            setPaymentCompleted(true)
-                            const currentOrder = pendingOrderRef
-                            if (currentOrder) {
-                              await updateOrder(pendingOrderId, {
-                                status: 'paid',
-                                paidAt: new Date().toISOString(),
-                                paymentMethod: form.country === 'fi' ? 'stripe' : form.country === 'uz' ? 'payme' : 'sberbank',
-                                history: [...(currentOrder.history || []), { status: 'paid', time: new Date().toISOString(), note: 'Auto-verified payment' }],
-                              })
-                            }
-                            fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: pendingOrderId, status: 'paid' }) }).catch(() => {})
-                            saveProfileData(form)
-                            clearCart()
-                            localStorage.setItem('tenza_user_email', form.customerEmail)
-                            if (user?.login) {
-                              await addPurchaseBonus(user.login, orderTotal)
-                            }
-                            window.location.href = `/success?order=${pendingOrderId}&email=${encodeURIComponent(form.customerEmail)}&status=paid`
-                          }}
-                          onError={(msg) => console.error('Payment error:', msg)}
-                        />
-                      </div>
                     ) : (
                       <div className="space-y-4">
                         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex items-center justify-between">
@@ -544,24 +600,91 @@ export default function CheckoutPage() {
                           </div>
                           <span className="text-[#ccff00] text-xl font-bold">${orderTotal.toFixed(2)}</span>
                         </div>
-                        <p className="text-gray-500 text-xs">{ll.chooseMethod}</p>
-                        <button onClick={handlePlaceOrder} disabled={submitting}
-                          className="w-full h-12 bg-[#ccff00] text-black font-semibold rounded-xl text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.2)] transition-all duration-300 disabled:opacity-40 flex items-center justify-center gap-2.5">
-                          {submitting ? (
-                            <span className="flex items-center gap-2.5">
-                              <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                              ...
-                            </span>
-                          ) : (
-                            <><CreditCard size={17} /> {ll.payWithCard}</>
-                          )}
-                        </button>
+
+                        {/* Finland — Stripe */}
+                        {form.country === 'fi' && (
+                          <>
+                            <button onClick={handleStripePayment} disabled={stripeLoading}
+                              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-[#635BFF]/10 hover:bg-[#635BFF]/20 transition-all disabled:opacity-40">
+                              <span className="text-2xl">💳</span>
+                              <div className="flex-1 text-left">
+                                <p className="text-white font-bold text-sm">Visa / Mastercard</p>
+                                <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
+                              </div>
+                              {stripeLoading ? (
+                                <Loader2 size={18} className="animate-spin text-[#635BFF]" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full border-2 border-[#635BFF]" />
+                              )}
+                            </button>
+                            {stripeError && (
+                              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+                                <p className="text-red-300 text-xs">{stripeError}</p>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Uzbekistan — Payme */}
+                        {form.country === 'uz' && (
+                          <button onClick={handlePaymePayment} disabled={stripeLoading}
+                            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all disabled:opacity-40">
+                            <span className="text-2xl">💳</span>
+                            <div className="flex-1 text-left">
+                              <p className="text-white font-bold text-sm">{ll.payme}</p>
+                              <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
+                            </div>
+                            {stripeLoading ? (
+                              <Loader2 size={18} className="animate-spin text-[#ccff00]" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
+                            )}
+                          </button>
+                        )}
+
+                        {/* Russia — Sberbank */}
+                        {form.country === 'ru' && (
+                          <div className="space-y-3">
+                            <button onClick={() => handleSberPayment('sberbank')} disabled={stripeLoading}
+                              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all disabled:opacity-40">
+                              <span className="text-2xl">📱</span>
+                              <div className="flex-1 text-left">
+                                <p className="text-white font-bold text-sm">{ll.sberbank}</p>
+                                <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
+                              </div>
+                              {stripeLoading ? (
+                                <Loader2 size={18} className="animate-spin text-[#ccff00]" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
+                              )}
+                            </button>
+                            <button onClick={() => handleSberPayment('tbank')} disabled={stripeLoading}
+                              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all disabled:opacity-40">
+                              <span className="text-2xl">📱</span>
+                              <div className="flex-1 text-left">
+                                <p className="text-white font-bold text-sm">{ll.tbank}</p>
+                                <p className="text-gray-500 text-xs">${orderTotal.toFixed(2)}</p>
+                              </div>
+                              {stripeLoading ? (
+                                <Loader2 size={18} className="animate-spin text-[#ccff00]" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Other countries */}
+                        {!['fi', 'uz', 'ru'].includes(form.country) && (
+                          <div className="bg-yellow-500/[0.04] border border-yellow-500/15 rounded-xl p-4 text-center">
+                            <p className="text-yellow-200/80 text-xs">{ll.telegramContact}</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Security notice */}
                 <div className="flex items-center justify-center gap-2 text-gray-600 text-[11px]">
                   <Lock size={12} />
                   <span>{ll.security}</span>

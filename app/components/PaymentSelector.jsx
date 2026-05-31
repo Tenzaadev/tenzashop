@@ -11,6 +11,7 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
   const [loading, setLoading] = useState(false)
   const [polling, setPolling] = useState(false)
   const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
   const [paid, setPaid] = useState(false)
   const [timeLeft, setTimeLeft] = useState(1200)
 
@@ -55,6 +56,8 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
   }
 
   const handleStripe = async () => {
+    setMethod('stripe')
+    setError('')
     setLoading(true)
     try {
       const res = await fetch('/api/stripe-payment', {
@@ -63,12 +66,18 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
         body: JSON.stringify({ amount, currency: currency || 'eur', orderId, customerEmail })
       })
       const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+        if (onError) onError(data.error)
+        return
+      }
       if (data.url) {
         setCheckoutUrl(data.url)
         setStatus(t('redirecting') || 'Redirecting to Stripe...')
         window.location.href = data.url
       }
     } catch (e) {
+      setError(e.message)
       if (onError) onError(e.message)
     } finally {
       setLoading(false)
@@ -76,6 +85,8 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
   }
 
   const handlePayme = async () => {
+    setMethod('payme')
+    setError('')
     setLoading(true)
     try {
       const res = await fetch('/api/payme-payment', {
@@ -84,6 +95,11 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
         body: JSON.stringify({ amount, orderId })
       })
       const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+        if (onError) onError(data.error)
+        return
+      }
       if (data.checkoutUrl) {
         setCheckoutUrl(data.checkoutUrl)
         setPolling(true)
@@ -91,6 +107,7 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
         window.location.href = data.checkoutUrl
       }
     } catch (e) {
+      setError(e.message)
       if (onError) onError(e.message)
     } finally {
       setLoading(false)
@@ -98,6 +115,8 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
   }
 
   const handleSber = async (methodType) => {
+    setMethod(methodType)
+    setError('')
     setLoading(true)
     try {
       const res = await fetch('/api/sber-payment', {
@@ -106,13 +125,18 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
         body: JSON.stringify({ amount, orderId, description: `Заказ ${orderId}`, method: methodType })
       })
       const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+        if (onError) onError(data.error)
+        return
+      }
       if (data.qrCode) {
         setQrCode(data.qrCode)
-        setMethod(methodType)
         setPolling(true)
         setStatus(t('scan_qr') || 'Scan QR code with your bank app')
       }
     } catch (e) {
+      setError(e.message)
       if (onError) onError(e.message)
     } finally {
       setLoading(false)
@@ -213,9 +237,15 @@ export default function PaymentSelector({ amount, orderId, country, currency, cu
         </div>
       )}
 
-      {status && !qrCode && !checkoutUrl && (
-        <div className={`bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 text-center`}>
-          <p className="text-yellow-200 text-sm">{status}</p>
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+          <p className="text-red-300 text-xs">{error}</p>
+        </div>
+      )}
+
+      {status && !qrCode && !checkoutUrl && !error && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 text-center">
+          <p className="text-yellow-200 text-xs">{status}</p>
         </div>
       )}
     </div>
