@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
-  CreditCard, Check, User, MapPin, Package,
+  ArrowLeft, CreditCard, Check, User, MapPin, Package,
   Truck, ChevronRight, AlertCircle, ShoppingBag, Lock, Loader2
 } from 'lucide-react'
 import { useI18n } from '@/i18n'
