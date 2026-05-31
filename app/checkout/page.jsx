@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
@@ -179,7 +179,7 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0
   }
 
-  const handleStripePayment = useCallback(async () => {
+  const handleStripePayment = async () => {
     setStripeError('')
     setStripeLoading(true)
     try {
@@ -206,19 +206,17 @@ export default function CheckoutPage() {
       fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
       sendTelegramNotification(order)
 
+      const items = cartItems.map(item => ({
+        name: typeof item.name === 'string' ? item.name : (item.name?.en || 'Product'),
+        price: item.price,
+        quantity: item.quantity,
+        image: typeof item.image === 'string' ? item.image : '',
+      }))
+
       const res = await fetch('/api/stripe-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: cartItems.map(item => ({
-            name: typeof item.name === 'string' ? item.name : (item.name?.en || 'Product'),
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image,
-          })),
-          orderId,
-          customerEmail: form.customerEmail,
-        }),
+        body: JSON.stringify({ items, orderId, customerEmail: form.customerEmail }),
       })
       const data = await res.json()
       if (data.error) {
@@ -233,9 +231,9 @@ export default function CheckoutPage() {
       setStripeError(e.message)
       setStripeLoading(false)
     }
-  }, [form, cartItems, subtotal, deliveryCost, orderTotal, user, addPurchaseBonus])
+  }
 
-  const handlePaymePayment = useCallback(async () => {
+  const handlePaymePayment = async () => {
     setStripeLoading(true)
     try {
       const orderId = generateOrderId()
@@ -275,9 +273,9 @@ export default function CheckoutPage() {
     } finally {
       setStripeLoading(false)
     }
-  }, [form, cartItems, subtotal, deliveryCost, orderTotal, user, addPurchaseBonus])
+  }
 
-  const handleSberPayment = useCallback(async (methodType) => {
+  const handleSberPayment = async (methodType) => {
     setStripeLoading(true)
     try {
       const orderId = generateOrderId()
@@ -317,7 +315,7 @@ export default function CheckoutPage() {
     } finally {
       setStripeLoading(false)
     }
-  }, [form, cartItems, subtotal, deliveryCost, orderTotal, user, addPurchaseBonus])
+  }
 
   if (cartItems.length === 0) {
     return (
