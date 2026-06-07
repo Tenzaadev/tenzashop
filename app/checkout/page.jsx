@@ -14,6 +14,7 @@ import {
 } from '@/utils/payment'
 import { addOrder } from '@/lib/firestore'
 import Header from '../components/Header'
+import PaymentSelector from '../components/PaymentSelector'
 
 const L = {
   uz: {
@@ -152,8 +153,6 @@ export default function CheckoutPage() {
   const [paymentCompleted, setPaymentCompleted] = useState(false)
   const [pendingOrderId, setPendingOrderId] = useState(null)
   const [autoFilled, setAutoFilled] = useState(false)
-  const [stripeError, setStripeError] = useState('')
-  const [stripeLoading, setStripeLoading] = useState(false)
 
   useEffect(() => {
     const cart = getCart()
@@ -183,142 +182,79 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0
   }
 
-  const handleStripePayment = async () => {
-    setStripeError('')
-    setStripeLoading(true)
-    try {
-      const orderId = generateOrderId()
-      setPendingOrderId(orderId)
-      saveProfileData(form)
+  const [paying, setPaying] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
-      const order = {
-        id: orderId, orderId,
-        customerName: form.customerName, fullName: form.customerName,
-        email: form.customerEmail, phone: form.customerPhone,
-        country: form.country, city: form.city, address: form.address,
-        postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
-        items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
-        total: orderTotal, paymentMethod: 'stripe',
-        coinsUsed: 0, coinsEarned: 0,
-        remainingAmount: orderTotal,
-        login: user?.login || form.customerEmail,
-        status: 'pending_payment',
-        history: [{ status: 'pending_payment', time: new Date().toISOString() }],
-        createdAt: new Date().toISOString(),
-      }
-      await addOrder(order)
-      fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
-      sendTelegramNotification(order)
-
-      const items = cartItems.map(item => ({
-        name: typeof item.name === 'string' ? item.name : (item.name?.en || 'Product'),
-        price: item.price,
-        quantity: item.quantity,
-        image: typeof item.image === 'string' ? item.image : '',
-      }))
-
-      const res = await fetch('/api/stripe-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, orderId, customerEmail: form.customerEmail }),
-      })
-      const data = await res.json()
-      if (data.error) {
-        setStripeError(data.error)
-        setStripeLoading(false)
-        return
-      }
-      if (data.url) {
-        clearCart()
-        window.location.href = data.url
-      }
-    } catch (e) {
-      setStripeError(e.message)
-      setStripeLoading(false)
+  const createOrder = async (paymentMethod) => {
+    const orderId = generateOrderId()
+    setPendingOrderId(orderId)
+    saveProfileData(form)
+    const order = {
+      id: orderId, orderId,
+      customerName: form.customerName, fullName: form.customerName,
+      email: form.customerEmail, phone: form.customerPhone,
+      country: form.country, city: form.city, address: form.address,
+      postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
+      items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
+      total: orderTotal, paymentMethod,
+      coinsUsed: 0, coinsEarned: 0,
+      remainingAmount: orderTotal,
+      login: user?.login || form.customerEmail,
+      status: 'pending_payment',
+      history: [{ status: 'pending_payment', time: new Date().toISOString() }],
+      createdAt: new Date().toISOString(),
     }
+    await addOrder(order)
+    fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
+    sendTelegramNotification(order)
+    return orderId
   }
 
-  const handlePaymePayment = async () => {
-    setStripeLoading(true)
+  const handlePayment = async (method) => {
+    setPaymentError('')
+    setPaying(true)
     try {
-      const orderId = generateOrderId()
-      setPendingOrderId(orderId)
-      saveProfileData(form)
+      const orderId = await createOrder(method)
 
-      const order = {
-        id: orderId, orderId,
-        customerName: form.customerName, fullName: form.customerName,
-        email: form.customerEmail, phone: form.customerPhone,
-        country: form.country, city: form.city, address: form.address,
-        postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
-        items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
-        total: orderTotal, paymentMethod: 'payme',
-        coinsUsed: 0, coinsEarned: 0,
-        remainingAmount: orderTotal,
-        login: user?.login || form.customerEmail,
-        status: 'pending_payment',
-        history: [{ status: 'pending_payment', time: new Date().toISOString() }],
-        createdAt: new Date().toISOString(),
+      if (method === 'stripe') {
+        const items = cartItems.map(item => ({
+          name: typeof item.name === 'string' ? item.name : (item.name?.en || 'Product'),
+          price: item.price, quantity: item.quantity,
+          image: typeof item.image === 'string' ? item.image : '',
+        }))
+        const res = await fetch('/api/stripe-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items, orderId, customerEmail: form.customerEmail }),
+        })
+        const data = await res.json()
+        if (data.error) { setPaymentError(data.error); return }
+        if (data.url) { clearCart(); window.location.href = data.url }
       }
-      await addOrder(order)
-      fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
-      sendTelegramNotification(order)
 
-      const res = await fetch('/api/payme-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: orderTotal, orderId }),
-      })
-      const data = await res.json()
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
+      if (method === 'payme') {
+        const res = await fetch('/api/payme-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: orderTotal, orderId }),
+        })
+        const data = await res.json()
+        if (data.checkoutUrl) { window.location.href = data.checkoutUrl }
+      }
+
+      if (method === 'robokassa') {
+        const res = await fetch('/api/robokassa-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: orderTotal, orderId, description: `Order ${orderId}` }),
+        })
+        const data = await res.json()
+        if (data.url) { window.location.href = data.url }
       }
     } catch (e) {
-      console.error(e)
+      setPaymentError(e.message)
     } finally {
-      setStripeLoading(false)
-    }
-  }
-
-  const handleSberPayment = async (methodType) => {
-    setStripeLoading(true)
-    try {
-      const orderId = generateOrderId()
-      setPendingOrderId(orderId)
-      saveProfileData(form)
-
-      const order = {
-        id: orderId, orderId,
-        customerName: form.customerName, fullName: form.customerName,
-        email: form.customerEmail, phone: form.customerPhone,
-        country: form.country, city: form.city, address: form.address,
-        postalCode: form.postalCode, floor: form.floor, doorCode: form.doorCode,
-        items: cartItems, subtotal, delivery: form.delivery, deliveryCost,
-        total: orderTotal, paymentMethod: methodType,
-        coinsUsed: 0, coinsEarned: 0,
-        remainingAmount: orderTotal,
-        login: user?.login || form.customerEmail,
-        status: 'pending_payment',
-        history: [{ status: 'pending_payment', time: new Date().toISOString() }],
-        createdAt: new Date().toISOString(),
-      }
-      await addOrder(order)
-      fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }).catch(() => {})
-      sendTelegramNotification(order)
-
-      const res = await fetch('/api/sber-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: orderTotal, orderId, description: `Заказ ${orderId}`, method: methodType }),
-      })
-      const data = await res.json()
-      if (data.qrCode) {
-        window.location.href = data.qrCode
-      }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setStripeLoading(false)
+      setPaying(false)
     }
   }
 
@@ -604,26 +540,36 @@ export default function CheckoutPage() {
                           <span className="text-[#ccff00] text-xl font-bold">${orderTotal.toFixed(2)}</span>
                         </div>
 
-                        {stripeError && (
+                        {paymentError && (
                           <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
-                            <p className="text-red-300 text-xs">{stripeError}</p>
+                            <p className="text-red-300 text-xs">{paymentError}</p>
                           </div>
                         )}
 
-                        {['fi', 'uz', 'ru'].includes(form.country) ? (
+                        <PaymentSelector
+                          amount={orderTotal}
+                          orderId={pendingOrderId || generateOrderId()}
+                          country={form.country}
+                          locale={locale}
+                          customerEmail={form.customerEmail}
+                          onPaid={() => setPaymentCompleted(true)}
+                        />
+
+                        {['fi', 'uz', 'ru'].includes(form.country) && (
                           <button onClick={() => {
-                            if (form.country === 'fi') handleStripePayment()
-                            else if (form.country === 'uz') handlePaymePayment()
-                            else if (form.country === 'ru') handleSberPayment('sberbank')
-                          }} disabled={stripeLoading}
+                            const method = form.country === 'fi' ? 'stripe' : form.country === 'uz' ? 'payme' : 'robokassa'
+                            handlePayment(method)
+                          }} disabled={paying}
                             className="w-full h-12 bg-[#ccff00] text-black font-semibold rounded-xl text-sm hover:shadow-[0_0_30px_rgba(204,255,0,0.2)] transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-50">
-                            {stripeLoading ? (
+                            {paying ? (
                               <Loader2 size={16} className="animate-spin" />
                             ) : (
                               <><span>{ll.paynow}</span> <span className="opacity-70">— ${orderTotal.toFixed(2)}</span></>
                             )}
                           </button>
-                        ) : (
+                        )}
+
+                        {!['fi', 'uz', 'ru'].includes(form.country) && (
                           <div className="bg-yellow-500/[0.04] border border-yellow-500/15 rounded-xl p-4 text-center">
                             <p className="text-yellow-200/80 text-xs">{ll.telegramContact}</p>
                           </div>
