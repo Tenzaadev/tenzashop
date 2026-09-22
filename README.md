@@ -1,5 +1,9 @@
 # 🛍️ TENZA SHOP
 
+[![Maintainability](https://qlty.sh/gh/Tenzaadev/projects/tenzashop/maintainability.svg)](https://qlty.sh/gh/Tenzaadev/projects/tenzashop)
+
+Internet clothing store...
+
 **Персональный бренд уличной одежды**
 
 [![Next.js](https://img.shields.io/badge/Next.js-14.1.0-black?logo=next.js)](https://nextjs.org/)
