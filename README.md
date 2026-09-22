@@ -1,34 +1,169 @@
-# 🛍️ TENZA SHOP
+🛍️ TENZA SHOP
 
-[![Maintainability](https://qlty.sh/gh/Tenzaadev/projects/tenzashop/maintainability.svg)](https://qlty.sh/gh/Tenzaadev/projects/tenzashop)
+TENZA SHOP — современный интернет-магазин уличной одежды с удобным интерфейсом для просмотра товаров, оформления заказов и взаимодействия с пользователем.
 
-Internet clothing store...
+Проект разработан как полноценное веб-приложение с адаптивным интерфейсом, мультиязычностью и современными визуальными эффектами.
 
-**Персональный бренд уличной одежды**
+🌐 Демо: https://tenzashop.vercel.app/
 
-[![Next.js](https://img.shields.io/badge/Next.js-14.1.0-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+📦 GitHub: https://github.com/Tenzaadev/tenzashop
 
----
+⸻
 
-## 📸 Демо
+✨ Основные возможности
 
-![Tenza Shop Preview](https://via.placeholder.com/800x400/0a0a0a/ccff00?text=TENZA+SHOP)
+* 🛍️ просмотр каталога одежды и товаров;
+* 🛒 добавление товаров и работа с заказами;
+* 👤 регистрация и авторизация пользователей;
+* 💾 сохранение пользовательских данных и состояния;
+* 🎁 бонусная система;
+* 🚚 оформление доставки;
+* 🌍 поддержка 5 языков;
+* 🌎 доставка в 5 стран;
+* 👨‍💼 административная панель;
+* 📱 интеграция с Telegram-ботом;
+* 💳 интеграция платёжной инфраструктуры;
+* 📱 адаптивный интерфейс;
+* ✨ современные анимации и интерактивные элементы;
+* 🧊 3D-визуальные элементы.
 
----
+⸻
 
-## 🚀 Быстрый старт
+🛠️ Технологический стек
 
-### Требования
+Frontend
 
-- **Node.js** 18.0 или выше
-- **npm** 9.0 или выше
-- **Git** (для клонирования)
+* Next.js 14
+* React 18
+* TypeScript
+* Tailwind CSS
+* Framer Motion
+* Three.js
+* React Three Fiber
+* React Three Drei
+* Lucide React
 
-### 1. Клонирование репозитория
+Дополнительные технологии
 
-```bash
-git clone https://github.com/JamshidDev/tenza-shop.git
-cd tenza-shop
+* Stripe
+* Vercel Analytics
+* Vercel Speed Insights
+* Vercel KV
+* QR Code
+
+⸻
+
+📁 Структура проекта
+
+tenzashop/
+├── app/                  # страницы и маршруты Next.js
+├── src/                  # исходный код приложения
+├── public/
+│   └── images/           # изображения и медиафайлы
+├── next.config.js        # конфигурация Next.js
+├── package.json          # зависимости и npm-скрипты
+├── tailwind.config.js    # конфигурация Tailwind CSS
+├── tsconfig.json         # конфигурация TypeScript
+└── README.md
+
+⸻
+
+🚀 Запуск проекта локально
+
+Требования
+
+* Node.js 18+
+* npm 9+
+* Git
+
+Клонирование
+
+git clone https://github.com/Tenzaadev/tenzashop.git
+cd tenzashop
+
+Установка зависимостей
+
+npm install
+
+Запуск в режиме разработки
+
+npm run dev
+
+После запуска приложение будет доступно по адресу:
+
+http://localhost:3000
+
+Production-сборка
+
+npm run build
+
+Запуск production-версии
+
+npm start
+
+Проверка кода
+
+npm run lint
+
+⸻
+
+🌐 Деплой
+
+Рабочая версия проекта размещена на Vercel:
+
+https://tenzashop.vercel.app/
+
+⸻
+
+📸 Демонстрация
+
+Демо проекта будет добавлено в рамках отчёта по производственной практике.
+
+Основной сценарий демонстрации:
+
+Открытие магазина
+      ↓
+Просмотр каталога
+      ↓
+Выбор товара
+      ↓
+Работа с корзиной / заказом
+      ↓
+Оформление заказа
+      ↓
+Результат операции
+
+⸻
+
+📊 Качество кода
+
+Проект проверяется с помощью Qlty.
+
+Current maintainability rating: B
+
+⸻
+
+🎯 Учебная практика
+
+Проект выполнен в рамках производственной практики по веб-разработке.
+
+В качестве основы выбран проект из каталога Project Based Learning, после чего приложение было переработано и расширено под концепцию интернет-магазина TENZA SHOP.
+
+Каталог проектов:
+
+https://github.com/practical-tutorials/project-based-learning
+
+⸻
+
+👨‍💻 Автор
+
+TENZADEV
+
+GitHub:
+https://github.com/Tenzaadev
+
+⸻
+
+📄 Лицензия
+
+Проект распространяется в соответствии с лицензией, указанной в репозитории.
